@@ -1,0 +1,767 @@
+[
+  {
+    "category": "TEMPURA NIGIRI / 2 biter",
+    "entries": [
+      {
+        "number": 513,
+        "name": "SALMON TEMPURA NIGIRI",
+        "price": 59.0
+      },
+      {
+        "number": 515,
+        "name": "EBI TEMPURA NIGIRI",
+        "price": 69.0
+      },
+      {
+        "number": 517,
+        "name": "ZUCCHINI TEMPURA NIGIRI",
+        "price": 49.0
+      },
+      {
+        "number": 518,
+        "name": "ASPARAGUS TEMPURA NIGIRI",
+        "price": 49.0
+      },
+      {
+        "number": 519,
+        "name": "CARROT TEMPURA NIGIRI",
+        "price": 49.0
+      }
+    ]
+  },
+  {
+    "category": "AVO MAKI / 8 biter",
+    "entries": [
+      {
+        "number": 605,
+        "name": "AVO SALMON",
+        "price": 99.0
+      },
+      {
+        "number": 606,
+        "name": "AVO SHRIMP",
+        "price": 99.0
+      },
+      {
+        "number": 607,
+        "name": "AVO TUNA",
+        "price": 99.0
+      }
+    ]
+  },
+  {
+    "category": "TEMPURA MAKI / 8 biter",
+    "entries": [
+      {
+        "number": 608,
+        "name": "SALMON TEMPURA ROLL",
+        "price": 99.0
+      },
+      {
+        "number": 609,
+        "name": "SHRIMP TEMPURA ROLL",
+        "price": 99.0
+      },
+      {
+        "number": 610,
+        "name": "HALIBUT TEMPURA ROLL",
+        "price": 99.0
+      },
+      {
+        "number": 611,
+        "name": "CRABSTICK TEMPURA ROLL",
+        "price": 99.0
+      }
+    ]
+  },
+  {
+    "category": "CRISPY TENKAS MAKI / 8 biter",
+    "entries": [
+      {
+        "number": 612,
+        "name": "CRISPY TENKAS SALMON ROLL",
+        "price": 109.0
+      },
+      {
+        "number": 613,
+        "name": "CRISPY TENKAS TUNA ROLL",
+        "price": 109.0
+      },
+      {
+        "number": 614,
+        "name": "CRISPY TENKAS HALIBUT ROLL",
+        "price": 109.0
+      },
+      {
+        "number": 615,
+        "name": "CRISPY TENKAS SCALLOP ROLL",
+        "price": 109.0
+      },
+      {
+        "number": 616,
+        "name": "CRISPY TENKAS SHRIMP ROLL",
+        "price": 109.0
+      },
+      {
+        "number": 617,
+        "name": "CRISPY TENKAS CRABSTICK ROLL",
+        "price": 109.0
+      }
+    ]
+  },
+  {
+    "category": "PIRI KARA MAKI / little bit spicy / 8 biter",
+    "entries": [
+      {
+        "number": 618,
+        "name": "PIRI KARA SALMON",
+        "price": 99.0
+      },
+      {
+        "number": 619,
+        "name": "PIRI KARA TUNA",
+        "price": 99.0
+      },
+      {
+        "number": 620,
+        "name": "PIRI KARA HALIBUT",
+        "price": 99.0
+      },
+      {
+        "number": 621,
+        "name": "PIRI KARA SCALLOP",
+        "price": 99.0
+      },
+      {
+        "number": 622,
+        "name": "PIRI KARA SHRIMP",
+        "price": 99.0
+      },
+      {
+        "number": 623,
+        "name": "PIRI KARA CRABSTICK",
+        "price": 99.0
+      }
+    ]
+  },
+  {
+    "category": "GEKI KARA MAKI / spicy / 8 biter",
+    "entries": [
+      {
+        "number": 624,
+        "name": "GEKI KARA SALMON",
+        "price": 109.0
+      },
+      {
+        "number": 625,
+        "name": "GEKI KARA TUNA",
+        "price": 109.0
+      },
+      {
+        "number": 626,
+        "name": "GEKI KARA HALIBUT",
+        "price": 109.0
+      },
+      {
+        "number": 627,
+        "name": "GEKI KARA SCALLOP",
+        "price": 109.0
+      },
+      {
+        "number": 628,
+        "name": "GEKI KARA SHRIMP",
+        "price": 109.0
+      },
+      {
+        "number": 629,
+        "name": "GEKI KARA CRABSTICK",
+        "price": 109.0
+      }
+    ]
+  },
+  {
+    "category": "BURNING MAKI",
+    "entries": [
+      {
+        "number": 639,
+        "name": "BURNING SALMON",
+        "price": 119.0
+      },
+      {
+        "number": 640,
+        "name": "BURNING TUNA",
+        "price": 119.0
+      },
+      {
+        "number": 641,
+        "name": "BURNING SCALLOP",
+        "price": 119.0
+      },
+      {
+        "number": 642,
+        "name": "BURNING SHRIMP",
+        "price": 119.0
+      },
+      {
+        "number": 643,
+        "name": "BURNING OCEAN",
+        "price": 129.0
+      }
+    ]
+  },
+  {
+    "category": "GOLDEN MAKI",
+    "entries": [
+      {
+        "number": 644,
+        "name": "GOLDEN SALMON ROLL",
+        "price": 119.0
+      },
+      {
+        "number": 645,
+        "name": "GOLDEN TUNA ROLL",
+        "price": 119.0
+      },
+      {
+        "number": 646,
+        "name": "GOLDEN SHRIMP ROLL",
+        "price": 119.0
+      },
+      {
+        "number": 647,
+        "name": "GOLDEN HAM ROLL",
+        "price": 119.0
+      },
+      {
+        "number": 648,
+        "name": "GOLDEN DUCK ROLL",
+        "price": 129.0
+      },
+      {
+        "number": 649,
+        "name": "GOLDEN BEEF ROLL",
+        "price": 129.0
+      }
+    ]
+  },
+  {
+    "category": "TAKE SPECIAL MAKI",
+    "entries": [
+      {
+        "number": 630,
+        "name": "KING OF CRAB",
+        "price": 139.0
+      },
+      {
+        "number": 631,
+        "name": "KING SPIDER ROLL",
+        "price": 139.0
+      },
+      {
+        "number": 632,
+        "name": "SALMON SUNRISE",
+        "price": 129.0
+      },
+      {
+        "number": 633,
+        "name": "THREE SACRED TREASURES",
+        "price": 129.0
+      },
+      {
+        "number": 634,
+        "name": "TUNA LUCHA LIBRE",
+        "price": 129.0
+      },
+      {
+        "number": 635,
+        "name": "BEIJING DUCK ROLL",
+        "price": 129.0
+      },
+      {
+        "number": 636,
+        "name": "COWBOY FISHERMAN",
+        "price": 139.0
+      },
+      {
+        "number": 637,
+        "name": "SPICY COWBOY FISHERMAN",
+        "price": 139.0
+      },
+      {
+        "number": 638,
+        "name": "OKINAWA ROLL",
+        "price": 129.0
+      }
+    ]
+  },
+  {
+    "category": "SUPPER",
+    "entries": [
+      {
+        "number": 201,
+        "name": "MISO SOUP",
+        "price": 49.0
+      },
+      {
+        "number": 202,
+        "name": "SPICY MISO SOUP",
+        "price": 55.0
+      },
+      {
+        "number": 203,
+        "name": "KAISEN SEAFOOD MISO SOUP",
+        "price": 85.0
+      },
+      {
+        "number": 204,
+        "name": "SALMON MISO SOUP",
+        "price": 75.0
+      },
+      {
+        "number": 205,
+        "name": "SPICY KAISEN SEAFOOD MISO SOUP",
+        "price": 89.0
+      },
+      {
+        "number": 206,
+        "name": "SPICY SALMON MISO SOUP",
+        "price": 79.0
+      }
+    ]
+  },
+  {
+    "category": "USUZUKURI / CARPACCIO",
+    "entries": [
+      {
+        "number": 301,
+        "name": "SALMON USUZUKURI",
+        "price": 139.0
+      },
+      {
+        "number": 302,
+        "name": "HALIBUT USUZUKURI",
+        "price": 139.0
+      },
+      {
+        "number": 303,
+        "name": "SPICY TUNA USUZUKURI",
+        "price": 139.0
+      },
+      {
+        "number": 304,
+        "name": "SCALLOP USUZUKURI",
+        "price": 139.0
+      }
+    ]
+  },
+  {
+    "category": "SASHIMI - 3 biter",
+    "entries": [
+      {
+        "number": 401,
+        "name": "SALMON SASHIMI",
+        "price": 59.0
+      },
+      {
+        "number": 402,
+        "name": "HALIBUT SASHIMI",
+        "price": 69.0
+      },
+      {
+        "number": 403,
+        "name": "TUNA SASHIMI",
+        "price": 69.0
+      },
+      {
+        "number": 404,
+        "name": "BOILED SHRIMP SASHIMI",
+        "price": 59.0
+      },
+      {
+        "number": 405,
+        "name": "SCALLOP SASHIMI",
+        "price": 69.0
+      },
+      {
+        "number": 406,
+        "name": "MIX SASHIMI",
+        "price": 269.0
+      }
+    ]
+  },
+  {
+    "category": "NIGIRI SUSHI / 2 biter",
+    "entries": [
+      {
+        "number": 503,
+        "name": "SMOKED SALMON NIGIRI",
+        "price": 59.0
+      },
+      {
+        "number": 504,
+        "name": "TUNA NIGIRI",
+        "price": 59.0
+      },
+      {
+        "number": 505,
+        "name": "HALIBUT NIGIRI",
+        "price": 59.0
+      },
+      {
+        "number": 506,
+        "name": "BOILED SHRIMP",
+        "price": 59.0
+      },
+      {
+        "number": 507,
+        "name": "SCALLOP NIGIRI",
+        "price": 59.0
+      },
+      {
+        "number": 509,
+        "name": "GYU BEEF TATAKI NIGIRI",
+        "price": 69.0
+      },
+      {
+        "number": 510,
+        "name": "SPICY GYU BEEF TATAKI",
+        "price": 69.0
+      },
+      {
+        "number": 511,
+        "name": "INARI FRIED TOFU",
+        "price": 49.0
+      },
+      {
+        "number": 512,
+        "name": "TAMAGO OMELET NIGIRI",
+        "price": 49.0
+      }
+    ]
+  },
+  {
+    "category": "VEGETARIAN MAKI / 8 biter",
+    "entries": [
+      {
+        "number": 601,
+        "name": "GREEN EMERALD",
+        "price": 89.0
+      },
+      {
+        "number": 602,
+        "name": "CRISPY TENKAS EMERALD",
+        "price": 89.0
+      },
+      {
+        "number": 603,
+        "name": "BURNING EMERALD",
+        "price": 89.0
+      },
+      {
+        "number": 604,
+        "name": "GOLDEN EMERALD",
+        "price": 89.0
+      }
+    ]
+  },
+  {
+    "category": "BENTO BOX",
+    "entries": [
+      {
+        "number": 701,
+        "name": "SHOJIN BENTO",
+        "price": 209.0
+      },
+      {
+        "number": 702,
+        "name": "SHOJIN SUSHI BENTO",
+        "price": 229.0
+      },
+      {
+        "number": 703,
+        "name": "MATSU BENTO",
+        "price": 269.0
+      },
+      {
+        "number": 704,
+        "name": "TAKE BENTO",
+        "price": 229.0
+      },
+      {
+        "number": 705,
+        "name": "UME BENTO",
+        "price": 209.0
+      },
+      {
+        "number": 706,
+        "name": "SALMON ALL STARS BENTO",
+        "price": 259.0
+      },
+      {
+        "number": 707,
+        "name": "SALMON ON FIRE BENTO",
+        "price": 159.0
+      },
+      {
+        "number": 708,
+        "name": "NIGIRI MORIAWASE BENTO",
+        "price": 239.0
+      }
+    ]
+  },
+  {
+    "category": "DESSERT",
+    "entries": [
+      {
+        "number": 801,
+        "name": "DORAYAKI",
+        "price": 69.0
+      },
+      {
+        "number": 802,
+        "name": "DAIFUKU MOCHI",
+        "price": 69.0
+      },
+      {
+        "number": 803,
+        "name": "MATCHA ICE CREAM",
+        "price": 69.0
+      },
+      {
+        "number": 804,
+        "name": "KURO GOMA ICE CREAM",
+        "price": 69.0
+      },
+      {
+        "number": 805,
+        "name": "MOCHI ICE CREAM",
+        "price": 69.0
+      },
+      {
+        "number": 806,
+        "name": "TEMPURA MOCHI ICE CREAM",
+        "price": 79.0
+      }
+    ]
+  },
+  {
+    "category": "SAUS",
+    "entries": [
+      {
+        "number": 901,
+        "name": "HOUSE SOY SAUCE",
+        "price": 20.0
+      },
+      {
+        "number": 903,
+        "name": "PONZU SAUCE",
+        "price": 20.0
+      },
+      {
+        "number": 905,
+        "name": "SPICY MAYO",
+        "price": 20.0
+      },
+      {
+        "number": 906,
+        "name": "S(WEET) L(EMON) W(ASABI) MAYO",
+        "price": 20.0
+      },
+      {
+        "number": 907,
+        "name": "JALAPE MAYO",
+        "price": 20.0
+      },
+      {
+        "number": 908,
+        "name": "",
+        "price": 0.0
+      },
+      {
+        "number": 909,
+        "name": "GOCHU KIM SAUCE",
+        "price": 20.0
+      },
+      {
+        "number": 910,
+        "name": "MANGO SAUCE",
+        "price": 20.0
+      },
+      {
+        "number": 911,
+        "name": "TENTSUYU SAUCE",
+        "price": 20.0
+      },
+      {
+        "number": 913,
+        "name": "WASABI",
+        "price": 20.0
+      },
+      {
+        "number": 914,
+        "name": "GARI",
+        "price": 20.0
+      }
+    ]
+  },
+  {
+    "category": "DRIKKE",
+    "entries": [
+      {
+        "number": 1007,
+        "name": "CALPICO",
+        "price": 39.0
+      },
+      {
+        "number": 1010,
+        "name": "RAMUNE 0,2l",
+        "price": 49.0
+      },
+      {
+        "number": 1021,
+        "name": "SENCHA GREEN TEA",
+        "price": 30.0
+      },
+      {
+        "number": 1022,
+        "name": "ORGANIC SENCHA GREEN TEA",
+        "price": 35.0
+      },
+      {
+        "number": 1023,
+        "name": "GENMAI TEA",
+        "price": 30.0
+      },
+      {
+        "number": 1024,
+        "name": "HOJI TEA",
+        "price": 30.0
+      },
+      {
+        "number": 1025,
+        "name": "MATCHA GREEN TEA",
+        "price": 30.0
+      },
+      {
+        "number": 1026,
+        "name": "HOT MATCHA GREEN TEA LATTE",
+        "price": 35.0
+      },
+      {
+        "number": 1043,
+        "name": "ASAHI SUPER DRY BEER 0,33l",
+        "price": 89.0
+      },
+      {
+        "number": 1045,
+        "name": "KIUCHI HITACHINO NEST RED RICE ALE 0,33l",
+        "price": 99.0
+      },
+      {
+        "number": 1051,
+        "name": "OZEKI JUNMAI DAIGINJO 0,3l",
+        "price": 299.0
+      },
+      {
+        "number": 1052,
+        "name": "HAKUTSURU JYUNMAI NIGORI SAYURI 0,3l",
+        "price": 299.0
+      },
+      {
+        "number": 1053,
+        "name": "OZEKI HANA AWAKA 0,25l",
+        "price": 249.0
+      },
+      {
+        "number": 1054,
+        "name": "MUTEMUKA 0.72l",
+        "price": 999.0
+      }
+    ]
+  },
+  {
+    "category": "FORRETTER",
+    "entries": [
+      {
+        "number": 101,
+        "name": "EDAMAME",
+        "price": 59.0
+      },
+      {
+        "number": 102,
+        "name": "SPICY EDAMAME",
+        "price": 65.0
+      },
+      {
+        "number": 103,
+        "name": "WAKAME SEAWEED SALAD",
+        "price": 49.0
+      },
+      {
+        "number": 104,
+        "name": "SESAME ASPARAGUS BEANS",
+        "price": 49.0
+      },
+      {
+        "number": 105,
+        "name": "HAKUSAI KIMCHI",
+        "price": 49.0
+      },
+      {
+        "number": 106,
+        "name": "KARA AGE FRIED CHICKEN",
+        "price": 109.0
+      },
+      {
+        "number": 107,
+        "name": "SOFT SHELL CRAB KARA AGE",
+        "price": 119.0
+      },
+      {
+        "number": 108,
+        "name": "EBI FRIE",
+        "price": 109.0
+      },
+      {
+        "number": 109,
+        "name": "EBI NO TEMPURA SHRIMP",
+        "price": 109.0
+      },
+      {
+        "number": 110,
+        "name": "SPICY EBI TEMPURA",
+        "price": 119.0
+      },
+      {
+        "number": 111,
+        "name": "YASAI NO TEMPURA VEGETABLES",
+        "price": 109.0
+      },
+      {
+        "number": 112,
+        "name": "SPICY YASAI NO TEMPURA VEGETABLES",
+        "price": 119.0
+      },
+      {
+        "number": 113,
+        "name": "TEMPURA MORIAWASE",
+        "price": 149.0
+      },
+      {
+        "number": 114,
+        "name": "AGE DASHI TOFU",
+        "price": 109.0
+      },
+      {
+        "number": 115,
+        "name": "GYU BEEF TATAKI",
+        "price": 149.0
+      },
+      {
+        "number": 116,
+        "name": "SPICY GYU BEEF TATAKI",
+        "price": 149.0
+      }
+    ]
+  }
+]
