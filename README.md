@@ -6,3 +6,8 @@ Compile
     cargo install diesel_cli
     diesel migration --database-url=dev.db run
     cargo build
+
+Run
+---
+
+    cargo run -- --database :memory: --migrations
