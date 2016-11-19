@@ -18,15 +18,21 @@ fn main() {
     let config = match config::read_config() {
         config::ConfigResult::Some(config) => config,
         config::ConfigResult::Help => {
-            config::write_help(&mut std::io::stdout());
+            config::write_help(&mut std::io::stdout()).unwrap();
             return;
         },
-        config::ConfigResult::Err(err) => panic!(err),
+        config::ConfigResult::Err(err) => {
+            println!("{:?}", &err);
+            panic!(err)
+        },
     };
 
-    let connection = SqliteConnection::establish(&config.database)
-        .expect(&format!("Error connecting to database at {}", &config.database));
-    diesel::migrations::run_pending_migrations(&connection).unwrap();
+    let connection = SqliteConnection::establish(&config.database.connection_string)
+        .expect(&format!("Error connecting to database at {}", &config.database.connection_string));
+
+    if config.database.run_migrations {
+        diesel::migrations::run_pending_migrations(&connection).unwrap();
+    }
 
     let take_menu = takedown::read_menu_from_file("take.json").unwrap();
     connection.transaction(|| ingest::resturant(&connection, "Take", &take_menu)).unwrap();
