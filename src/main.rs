@@ -24,10 +24,8 @@ fn main() {
         config::ConfigResult::Err(err) => panic!(err),
     };
 
-    let database = ":memory:";
-
-    let connection = SqliteConnection::establish(database)
-        .expect(&format!("Error connecting to database at {}", database));
+    let connection = SqliteConnection::establish(&config.database)
+        .expect(&format!("Error connecting to database at {}", &config.database));
     diesel::migrations::run_pending_migrations(&connection).unwrap();
 
     let take_menu = takedown::read_menu_from_file("take.json").unwrap();

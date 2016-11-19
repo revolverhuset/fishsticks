@@ -10,6 +10,7 @@ quick_error! {
 }
 
 pub struct Config {
+    pub database: String,
 }
 
 pub enum ConfigResult {
@@ -23,6 +24,8 @@ const USAGE: &'static str = "Usage: fishsticks [options]";
 fn create_opts() -> getopts::Options {
     let mut opts = getopts::Options::new();
     opts.optflag("h", "help", "print this help menu");
+    opts.optopt("d", "database", "specify database file. Use the special \
+        value :memory: to use a volatile in-memory database", "DATABASE");
     opts
 }
 
@@ -40,5 +43,7 @@ pub fn read_config() -> ConfigResult {
         return ConfigResult::Help;
     }
 
-    ConfigResult::Some(Config{})
+    ConfigResult::Some(Config{
+        database: matches.opt_str("database").unwrap_or(":memory:".to_owned())
+    })
 }
