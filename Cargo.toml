@@ -2,6 +2,10 @@
 authors = ["Magnus Hoff <maghoff@gmail.com>"]
 name = "fishsticks"
 version = "0.1.0"
+build = "migrate.rs"
+
+[build-dependencies]
+diesel = "^0.8.1"
 
 [dependencies]
 diesel = "^0.8.1"

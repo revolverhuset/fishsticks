@@ -1,1 +1,1 @@
-infer_schema!("dev.db");
+infer_schema!(".build.db");
