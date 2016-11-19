@@ -14,6 +14,17 @@ mod takedown;
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 
+fn connect_database(cfg: &config::DbConfig) -> SqliteConnection {
+    let connection = SqliteConnection::establish(&cfg.connection_string)
+        .expect(&format!("Error connecting to database at {}", &cfg.connection_string));
+
+    if cfg.run_migrations {
+        diesel::migrations::run_pending_migrations(&connection).unwrap();
+    }
+
+    connection
+}
+
 fn main() {
     let config = match config::read_config() {
         config::ConfigResult::Some(config) => config,
@@ -27,12 +38,7 @@ fn main() {
         },
     };
 
-    let connection = SqliteConnection::establish(&config.database.connection_string)
-        .expect(&format!("Error connecting to database at {}", &config.database.connection_string));
-
-    if config.database.run_migrations {
-        diesel::migrations::run_pending_migrations(&connection).unwrap();
-    }
+    let connection = connect_database(&config.database);
 
     let take_menu = takedown::read_menu_from_file("take.json").unwrap();
     connection.transaction(|| ingest::resturant(&connection, "Take", &take_menu)).unwrap();
@@ -48,13 +54,11 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use diesel;
-    use diesel::Connection;
-    use diesel::sqlite::SqliteConnection;
-
     #[test]
     fn migrations_work() {
-        let connection = SqliteConnection::establish(":memory:").unwrap();
-        diesel::migrations::run_pending_migrations(&connection).unwrap();
+        ::connect_database(&::config::DbConfig {
+            connection_string: ":memory:".to_owned(),
+            run_migrations: true,
+        });
     }
 }
