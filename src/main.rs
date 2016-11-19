@@ -5,6 +5,7 @@
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate serde_derive;
 
+mod config;
 mod ingest;
 mod models;
 mod schema;
@@ -14,6 +15,15 @@ use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 
 fn main() {
+    let config = match config::read_config() {
+        config::ConfigResult::Some(config) => config,
+        config::ConfigResult::Help => {
+            config::write_help(&mut std::io::stdout());
+            return;
+        },
+        config::ConfigResult::Err(err) => panic!(err),
+    };
+
     let database = ":memory:";
 
     let connection = SqliteConnection::establish(database)

@@ -5,6 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 diesel = "^0.8.1"
+getopts = "0.2.14"
 quick-error = "1.1.0"
 serde = "^0.8.17"
 serde_derive = "^0.8.17"
