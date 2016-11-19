@@ -31,3 +31,16 @@ fn main() {
         println!("{}: {}", resturant.id, &resturant.name);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use diesel;
+    use diesel::Connection;
+    use diesel::sqlite::SqliteConnection;
+
+    #[test]
+    fn migrations_work() {
+        let connection = SqliteConnection::establish(":memory:").unwrap();
+        diesel::migrations::run_pending_migrations(&connection).unwrap();
+    }
+}
