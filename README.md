@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/revolverhuset/fishsticks.svg?branch=master)](https://travis-ci.org/revolverhuset/fishsticks)
+
 Compile
 -------
 `fishsticks` makes heavy use of procedural macros, also known as macros 1.1,
