@@ -1,8 +1,8 @@
 [package]
 authors = ["Magnus Hoff <maghoff@gmail.com>"]
+build = "migrate.rs"
 name = "fishsticks"
 version = "0.1.0"
-build = "migrate.rs"
 
 [build-dependencies]
 diesel = "^0.8.1"
@@ -10,7 +10,11 @@ diesel = "^0.8.1"
 [dependencies]
 diesel = "^0.8.1"
 getopts = "0.2.14"
+handlebars = "0.22.0"
+handlebars-iron = "0.19.2"
+iron = "0.4.0"
 quick-error = "1.1.0"
+router = "0.4.0"
 serde = "^0.8.17"
 serde_derive = "^0.8.17"
 serde_json = "^0.8.3"

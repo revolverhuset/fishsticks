@@ -10,6 +10,7 @@ mod ingest;
 mod models;
 mod schema;
 mod takedown;
+mod web;
 
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
@@ -50,6 +51,8 @@ fn main() {
     for resturant in results {
         println!("{}: {}", resturant.id, &resturant.name);
     }
+
+    web::run().unwrap();
 }
 
 #[cfg(test)]
