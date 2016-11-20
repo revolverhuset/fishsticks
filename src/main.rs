@@ -14,11 +14,11 @@ mod takedown;
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 
-fn connect_database(cfg: &config::DbConfig) -> SqliteConnection {
-    let connection = SqliteConnection::establish(&cfg.connection_string)
-        .expect(&format!("Error connecting to database at {}", &cfg.connection_string));
+fn connect_database(connection_string: &str, run_migrations: bool) -> SqliteConnection {
+    let connection = SqliteConnection::establish(connection_string)
+        .expect(&format!("Error connecting to database at {}", connection_string));
 
-    if cfg.run_migrations {
+    if run_migrations {
         diesel::migrations::run_pending_migrations(&connection).unwrap();
     }
 
@@ -38,7 +38,7 @@ fn main() {
         },
     };
 
-    let connection = connect_database(&config.database);
+    let connection = connect_database(&config.database.connection_string, config.database.run_migrations);
 
     let take_menu = takedown::read_menu_from_file("take.json").unwrap();
     connection.transaction(|| ingest::resturant(&connection, "Take", &take_menu)).unwrap();
@@ -56,9 +56,6 @@ fn main() {
 mod tests {
     #[test]
     fn migrations_work() {
-        ::connect_database(&::config::DbConfig {
-            connection_string: ":memory:".to_owned(),
-            run_migrations: true,
-        });
+        ::connect_database(":memory:", true);
     }
 }
