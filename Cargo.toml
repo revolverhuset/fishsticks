@@ -4,11 +4,12 @@ build = "migrate.rs"
 name = "fishsticks"
 version = "0.1.0"
 
-[build-dependencies]
-diesel = "^0.8.1"
+[build-dependencies.diesel]
+version = "^0.8.1"
+default-features = false
+features = ["sqlite"]
 
 [dependencies]
-diesel = "^0.8.1"
 getopts = "^0.2.14"
 handlebars = { version = "^0.22.0", features = ["serde_type"] }
 handlebars-iron = { version = "^0.19.2", features = ["serde_type"] }
@@ -19,6 +20,12 @@ serde = "^0.8.17"
 serde_derive = "^0.8.17"
 serde_json = "^0.8.3"
 
-[dependencies.diesel_codegen]
-features = ["sqlite"]
+[dependencies.diesel]
 version = "^0.8.1"
+default-features = false
+features = ["sqlite"]
+
+[dependencies.diesel_codegen]
+version = "^0.8.1"
+default-features = false
+features = ["sqlite"]
