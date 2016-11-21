@@ -3,7 +3,7 @@ extern crate iron;
 extern crate router;
 extern crate serde_json;
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::collections::BTreeMap;
 use state;
 
@@ -35,15 +35,38 @@ fn index(state: &mut state::State, _: &mut Request) -> IronResult<Response> {
     Ok(resp)
 }
 
+fn menu(state: &mut state::State, req: &mut Request) -> IronResult<Response> {
+    use self::serde_json::value::{self, Value};
+
+    let id = req.extensions.get::<Router>().unwrap()
+        .find("id").unwrap()
+        .parse::<i32>().unwrap();
+
+    let mut resp = Response::new();
+
+    let mut data = BTreeMap::<String, Value>::new();
+
+    // TODO Understand error handling with Iron and use ? here:
+    let menu = state.menu(id).unwrap();
+
+    data.insert("menu".to_string(), value::to_value(&menu));
+
+    resp.set_mut(Template::new("menu", data));
+    Ok(resp)
+}
+
 pub fn run(state: state::State) -> Result<(), Error> {
-    let shared_state = Mutex::new(state);
+    let shared_state = Arc::new(Mutex::new(state));
+    let s1 = shared_state.clone();
+    let s2 = shared_state.clone();
 
     let mut hbse = HandlebarsEngine::new();
     hbse.add(Box::new(DirectorySource::new("./templates/", ".hbs")));
     hbse.reload()?;
 
     let mut router = Router::new();
-    router.get("/", move |req: &mut Request| index(&mut shared_state.lock().unwrap(), req), "index");
+    router.get("/", move |req: &mut Request| index(&mut s1.lock().unwrap(), req), "index");
+    router.get("/resturant/:id", move |req: &mut Request| menu(&mut s2.lock().unwrap(), req), "menu");
 
     let mut chain = Chain::new(router);
     chain.link_after(hbse);

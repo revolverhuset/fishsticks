@@ -26,4 +26,13 @@ impl State {
 
         Ok(resturants.load::<models::Resturant>(&self.db_connection)?)
     }
+
+    pub fn menu(&self, resturant_id: i32) -> Result<Vec<models::MenuItem>, Error> {
+        use schema::menu_items::dsl::*;
+
+        Ok(menu_items
+            .filter(resturant.eq(resturant_id))
+            .load::<models::MenuItem>(&self.db_connection)?
+        )
+    }
 }
