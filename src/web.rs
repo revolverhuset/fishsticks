@@ -1,10 +1,15 @@
 extern crate handlebars_iron;
 extern crate iron;
 extern crate router;
+extern crate serde_json;
 
+use std::sync::Mutex;
+use std::collections::BTreeMap;
+use state;
+
+use self::handlebars_iron::{Template, HandlebarsEngine, DirectorySource};
 use self::iron::prelude::*;
 use self::router::Router;
-use self::handlebars_iron::{Template, HandlebarsEngine, DirectorySource};
 
 quick_error! {
     #[derive(Debug)]
@@ -14,21 +19,31 @@ quick_error! {
     }
 }
 
-fn hello_world(_: &mut Request) -> IronResult<Response> {
+fn index(state: &mut state::State, _: &mut Request) -> IronResult<Response> {
+    use self::serde_json::value::{self, Value};
+
     let mut resp = Response::new();
 
-    let data = ();
+    let mut data = BTreeMap::<String, Value>::new();
+
+    // TODO Understand error handling with Iron and use ? here:
+    let resturants = state.resturants().unwrap();
+
+    data.insert("resturants".to_string(), value::to_value(&resturants));
+
     resp.set_mut(Template::new("index", data));
     Ok(resp)
 }
 
-pub fn run() -> Result<(), Error> {
+pub fn run(state: state::State) -> Result<(), Error> {
+    let shared_state = Mutex::new(state);
+
     let mut hbse = HandlebarsEngine::new();
     hbse.add(Box::new(DirectorySource::new("./templates/", ".hbs")));
     hbse.reload()?;
 
     let mut router = Router::new();
-    router.get("/", hello_world, "hello");
+    router.get("/", move |req: &mut Request| index(&mut shared_state.lock().unwrap(), req), "index");
 
     let mut chain = Chain::new(router);
     chain.link_after(hbse);

@@ -5,5 +5,18 @@
 </head>
 <body>
 <h1>Fishsticks</h1>
+
+<h2>Resturants</h2>
+<ul>
+    {{#each resturants}}
+    <li><a href="resturant/{{this.id}}">{{this.name}}</a></li>
+    {{/each}}
+</ul>
+
+<div class="footer">
+Do you like Fishsticks?<br/>
+<a href="https://github.com/revolverhuset/fishsticks">Star and watch on Github!</a>
+</div>
+
 </body>
 </html>

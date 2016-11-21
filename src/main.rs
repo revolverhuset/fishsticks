@@ -9,6 +9,7 @@ mod config;
 mod ingest;
 mod models;
 mod schema;
+mod state;
 mod takedown;
 mod web;
 
@@ -44,15 +45,9 @@ fn main() {
     let take_menu = takedown::read_menu_from_file("take.json").unwrap();
     connection.transaction(|| ingest::resturant(&connection, "Take", &take_menu)).unwrap();
 
-    use schema::resturants::dsl::*;
-    use diesel::LoadDsl;
-    let results = resturants.load::<models::Resturant>(&connection).expect("Error querying db");
+    let state = state::State::new(connection);
 
-    for resturant in results {
-        println!("{}: {}", resturant.id, &resturant.name);
-    }
-
-    web::run().unwrap();
+    web::run(state).unwrap();
 }
 
 #[cfg(test)]
