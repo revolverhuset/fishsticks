@@ -1,5 +1,7 @@
 use diesel;
 use models;
+use ingest;
+use takedown;
 
 use diesel::prelude::*;
 
@@ -7,6 +9,7 @@ quick_error! {
     #[derive(Debug)]
     pub enum Error {
         Diesel(err: diesel::result::Error) { from() }
+        IngestError(err: diesel::result::TransactionError<ingest::Error>) { from() }
     }
 }
 
@@ -34,5 +37,12 @@ impl State {
             .filter(resturant.eq(resturant_id))
             .load::<models::MenuItem>(&self.db_connection)?
         )
+    }
+
+    pub fn ingest_menu(&self, resturant: &str, menu: &takedown::Menu) -> Result<(), Error> {
+        self.db_connection.transaction(|| {
+            ingest::resturant(&self.db_connection, resturant, menu)
+        })?;
+        Ok(())
     }
 }

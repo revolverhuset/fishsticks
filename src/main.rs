@@ -41,10 +41,6 @@ fn main() {
     };
 
     let connection = connect_database(&config.database.connection_string, config.database.run_migrations);
-
-    let take_menu = takedown::read_menu_from_file("take.json").unwrap();
-    connection.transaction(|| ingest::resturant(&connection, "Take", &take_menu)).unwrap();
-
     let state = state::State::new(connection);
 
     web::run(state, &config.web.bind).unwrap();

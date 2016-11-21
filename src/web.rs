@@ -1,3 +1,4 @@
+extern crate bodyparser;
 extern crate handlebars_iron;
 extern crate iron;
 extern crate router;
@@ -6,12 +7,14 @@ extern crate serde_json;
 use std::sync::{Arc, Mutex};
 use std::collections::BTreeMap;
 use state;
+use takedown;
 
 use self::handlebars_iron::{Template, HandlebarsEngine, DirectorySource};
 use self::iron::prelude::*;
 use self::iron::{status, typemap, BeforeMiddleware};
 use self::router::Router;
 
+// TODO Understand error handling with Iron
 quick_error! {
     #[derive(Debug)]
     pub enum Error {
@@ -37,7 +40,6 @@ fn index(req: &mut Request) -> IronResult<Response> {
 
     let mut data = BTreeMap::<String, Value>::new();
 
-    // TODO Understand error handling with Iron and use ? here:
     let resturants = state.resturants().unwrap();
 
     data.insert("resturants".to_string(), value::to_value(&resturants));
@@ -55,12 +57,30 @@ fn menu(req: &mut Request) -> IronResult<Response> {
 
     let mut data = BTreeMap::<String, Value>::new();
 
-    // TODO Understand error handling with Iron and use ? here:
     let menu = state.menu(id).unwrap();
 
     data.insert("menu".to_string(), value::to_value(&menu));
 
     Ok(Response::with((status::Ok, Template::new("menu", data))))
+}
+
+#[derive(Deserialize, Debug, Clone)]
+struct NewResturant {
+    resturant: String,
+    menu: takedown::Menu,
+}
+
+fn ingest(req: &mut Request) -> IronResult<Response> {
+    match req.get::<bodyparser::Struct<NewResturant>>() {
+        Ok(Some(new_resturant)) => {
+            let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
+            state.ingest_menu(&new_resturant.resturant, &new_resturant.menu).unwrap();
+
+            Ok(Response::with(status::Ok))
+        }
+        Ok(None) => Ok(Response::with((status::BadRequest, "Missing body"))),
+        Err(err) => Ok(Response::with((status::BadRequest, format!("{:?}", err)))),
+    }
 }
 
 pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
@@ -70,6 +90,7 @@ pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
 
     let mut router = Router::new();
     router.get("/", index, "index");
+    router.post("/ingest", ingest, "ingest");
     router.get("/resturant/:id", menu, "menu");
 
     let mut chain = Chain::new(router);
