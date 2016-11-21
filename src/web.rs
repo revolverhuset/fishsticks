@@ -9,7 +9,7 @@ use state;
 
 use self::handlebars_iron::{Template, HandlebarsEngine, DirectorySource};
 use self::iron::prelude::*;
-use self::iron::status;
+use self::iron::{status, typemap, BeforeMiddleware};
 use self::router::Router;
 
 quick_error! {
@@ -20,8 +20,20 @@ quick_error! {
     }
 }
 
-fn index(state: &mut state::State, _: &mut Request) -> IronResult<Response> {
+struct StateContainer(pub Arc<Mutex<state::State>>);
+
+impl typemap::Key for StateContainer { type Value = StateContainer; }
+
+impl BeforeMiddleware for StateContainer {
+    fn before(&self, req: &mut Request) -> IronResult<()> {
+        req.extensions.insert::<StateContainer>(StateContainer(self.0.clone()));
+        Ok(())
+    }
+}
+
+fn index(req: &mut Request) -> IronResult<Response> {
     use self::serde_json::value::{self, Value};
+    let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
 
     let mut data = BTreeMap::<String, Value>::new();
 
@@ -33,8 +45,9 @@ fn index(state: &mut state::State, _: &mut Request) -> IronResult<Response> {
     Ok(Response::with((status::Ok, Template::new("index", data))))
 }
 
-fn menu(state: &mut state::State, req: &mut Request) -> IronResult<Response> {
+fn menu(req: &mut Request) -> IronResult<Response> {
     use self::serde_json::value::{self, Value};
+    let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
 
     let id = req.extensions.get::<Router>().unwrap()
         .find("id").unwrap()
@@ -51,19 +64,16 @@ fn menu(state: &mut state::State, req: &mut Request) -> IronResult<Response> {
 }
 
 pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
-    let shared_state = Arc::new(Mutex::new(state));
-    let s1 = shared_state.clone();
-    let s2 = shared_state.clone();
-
     let mut hbse = HandlebarsEngine::new();
     hbse.add(Box::new(DirectorySource::new("./templates/", ".hbs")));
     hbse.reload()?;
 
     let mut router = Router::new();
-    router.get("/", move |req: &mut Request| index(&mut s1.lock().unwrap(), req), "index");
-    router.get("/resturant/:id", move |req: &mut Request| menu(&mut s2.lock().unwrap(), req), "menu");
+    router.get("/", index, "index");
+    router.get("/resturant/:id", menu, "menu");
 
     let mut chain = Chain::new(router);
+    chain.link_before(StateContainer(Arc::new(Mutex::new(state))));
     chain.link_after(hbse);
 
     let listening = Iron::new(chain).http(bind).map_err(|_| Error::Bummer)?;
