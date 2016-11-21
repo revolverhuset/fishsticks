@@ -1,22 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>fishsticks</title>
-</head>
-<body>
-<h1>Fishsticks</h1>
-
+{{> header }}
 <h2>Menu</h2>
 <ul>
     {{#each menu}}
     <li>{{this.id}} {{this.name}} {{this.price_in_cents}}</li>
     {{/each}}
 </ul>
-
-<div class="footer">
-Do you like Fishsticks?<br/>
-<a href="https://github.com/revolverhuset/fishsticks">Star and watch on Github!</a>
-</div>
-
-</body>
-</html>
+{{> footer }}
