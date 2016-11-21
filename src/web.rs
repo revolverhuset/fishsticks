@@ -55,7 +55,7 @@ fn menu(state: &mut state::State, req: &mut Request) -> IronResult<Response> {
     Ok(resp)
 }
 
-pub fn run(state: state::State) -> Result<(), Error> {
+pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
     let shared_state = Arc::new(Mutex::new(state));
     let s1 = shared_state.clone();
     let s2 = shared_state.clone();
@@ -71,7 +71,7 @@ pub fn run(state: state::State) -> Result<(), Error> {
     let mut chain = Chain::new(router);
     chain.link_after(hbse);
 
-    let listening = Iron::new(chain).http("localhost:3000").map_err(|_| Error::Bummer)?;
+    let listening = Iron::new(chain).http(bind).map_err(|_| Error::Bummer)?;
     println!("Listening to {:?}", &listening.socket);
     drop(listening); // Will implicitly block and keep handling requests
 

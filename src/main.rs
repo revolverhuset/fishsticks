@@ -47,7 +47,7 @@ fn main() {
 
     let state = state::State::new(connection);
 
-    web::run(state).unwrap();
+    web::run(state, &config.web.bind).unwrap();
 }
 
 #[cfg(test)]

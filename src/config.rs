@@ -15,8 +15,13 @@ pub struct DbConfig {
     pub run_migrations: bool,
 }
 
+pub struct WebConfig {
+    pub bind: String,
+}
+
 pub struct Config {
     pub database: DbConfig,
+    pub web: WebConfig,
 }
 
 pub enum ConfigResult {
@@ -33,6 +38,8 @@ fn create_opts() -> getopts::Options {
     opts.reqopt("d", "database", "specify database file. Use the special \
         value :memory: to use a volatile in-memory database", "DATABASE");
     opts.optflag("", "migrations", "run pending database migrations");
+    opts.optopt("", "bind", "specify bind address for the http server. The \
+        default value is localhost:3000", "ADDRESS");
     opts
 }
 
@@ -54,6 +61,9 @@ pub fn read_config() -> ConfigResult {
         database: DbConfig {
             connection_string: matches.opt_str("database").unwrap_or(":memory:".to_owned()),
             run_migrations: matches.opt_present("migrations"),
+        },
+        web: WebConfig {
+            bind: matches.opt_str("bind").unwrap_or("localhost:3000".to_owned()),
         },
     })
 }
