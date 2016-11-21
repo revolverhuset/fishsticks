@@ -9,6 +9,7 @@ use state;
 
 use self::handlebars_iron::{Template, HandlebarsEngine, DirectorySource};
 use self::iron::prelude::*;
+use self::iron::status;
 use self::router::Router;
 
 quick_error! {
@@ -22,8 +23,6 @@ quick_error! {
 fn index(state: &mut state::State, _: &mut Request) -> IronResult<Response> {
     use self::serde_json::value::{self, Value};
 
-    let mut resp = Response::new();
-
     let mut data = BTreeMap::<String, Value>::new();
 
     // TODO Understand error handling with Iron and use ? here:
@@ -31,8 +30,7 @@ fn index(state: &mut state::State, _: &mut Request) -> IronResult<Response> {
 
     data.insert("resturants".to_string(), value::to_value(&resturants));
 
-    resp.set_mut(Template::new("index", data));
-    Ok(resp)
+    Ok(Response::with((status::Ok, Template::new("index", data))))
 }
 
 fn menu(state: &mut state::State, req: &mut Request) -> IronResult<Response> {
@@ -42,8 +40,6 @@ fn menu(state: &mut state::State, req: &mut Request) -> IronResult<Response> {
         .find("id").unwrap()
         .parse::<i32>().unwrap();
 
-    let mut resp = Response::new();
-
     let mut data = BTreeMap::<String, Value>::new();
 
     // TODO Understand error handling with Iron and use ? here:
@@ -51,8 +47,7 @@ fn menu(state: &mut state::State, req: &mut Request) -> IronResult<Response> {
 
     data.insert("menu".to_string(), value::to_value(&menu));
 
-    resp.set_mut(Template::new("menu", data));
-    Ok(resp)
+    Ok(Response::with((status::Ok, Template::new("menu", data))))
 }
 
 pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
