@@ -24,24 +24,24 @@ impl State {
         }
     }
 
-    pub fn resturants(&self) -> Result<Vec<models::Resturant>, Error> {
-        use schema::resturants::dsl::*;
+    pub fn restaurants(&self) -> Result<Vec<models::Restaurant>, Error> {
+        use schema::restaurants::dsl::*;
 
-        Ok(resturants.load::<models::Resturant>(&self.db_connection)?)
+        Ok(restaurants.load::<models::Restaurant>(&self.db_connection)?)
     }
 
-    pub fn menu(&self, resturant_id: i32) -> Result<Vec<models::MenuItem>, Error> {
+    pub fn menu(&self, restaurant_id: i32) -> Result<Vec<models::MenuItem>, Error> {
         use schema::menu_items::dsl::*;
 
         Ok(menu_items
-            .filter(resturant.eq(resturant_id))
+            .filter(restaurant.eq(restaurant_id))
             .load::<models::MenuItem>(&self.db_connection)?
         )
     }
 
-    pub fn ingest_menu(&self, resturant: &str, menu: &takedown::Menu) -> Result<(), Error> {
+    pub fn ingest_menu(&self, restaurant: &str, menu: &takedown::Menu) -> Result<(), Error> {
         self.db_connection.transaction(|| {
-            ingest::resturant(&self.db_connection, resturant, menu)
+            ingest::restaurant(&self.db_connection, restaurant, menu)
         })?;
         Ok(())
     }

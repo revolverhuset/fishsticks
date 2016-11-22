@@ -41,9 +41,9 @@ fn index(req: &mut Request) -> IronResult<Response> {
 
     let mut data = BTreeMap::<String, Value>::new();
 
-    let resturants = state.resturants().unwrap();
+    let restaurants = state.restaurants().unwrap();
 
-    data.insert("resturants".to_string(), value::to_value(&resturants));
+    data.insert("restaurants".to_string(), value::to_value(&restaurants));
 
     Ok(Response::with((status::Ok, Template::new("index", data))))
 }
@@ -66,16 +66,16 @@ fn menu(req: &mut Request) -> IronResult<Response> {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-struct NewResturant {
-    resturant: String,
+struct NewRestaurant {
+    restaurant: String,
     menu: takedown::Menu,
 }
 
 fn ingest(req: &mut Request) -> IronResult<Response> {
-    match req.get::<bodyparser::Struct<NewResturant>>() {
-        Ok(Some(new_resturant)) => {
+    match req.get::<bodyparser::Struct<NewRestaurant>>() {
+        Ok(Some(new_restaurant)) => {
             let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
-            state.ingest_menu(&new_resturant.resturant, &new_resturant.menu).unwrap();
+            state.ingest_menu(&new_restaurant.restaurant, &new_restaurant.menu).unwrap();
 
             Ok(Response::with(status::Ok))
         }
@@ -92,7 +92,7 @@ pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
     let mut router = Router::new();
     router.get("/", index, "index");
     router.post("/ingest", ingest, "ingest");
-    router.get("/resturant/:id", menu, "menu");
+    router.get("/restaurant/:id", menu, "menu");
 
     router.post("/slack", slack::slack, "slack");
 

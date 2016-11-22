@@ -1,7 +1,7 @@
 use diesel;
 use diesel::sqlite::SqliteConnection;
-use schema::{resturants, menu_items};
-use models::Resturant;
+use schema::{restaurants, menu_items};
+use models::Restaurant;
 use takedown;
 
 quick_error! {
@@ -12,38 +12,38 @@ quick_error! {
 }
 
 #[derive(Insertable)]
-#[table_name="resturants"]
-struct NewResturant<'a> {
+#[table_name="restaurants"]
+struct NewRestaurant<'a> {
     name: &'a str
 }
 
 #[derive(Insertable)]
 #[table_name="menu_items"]
 struct NewMenuItem<'a> {
-    resturant: i32,
+    restaurant: i32,
     id: i32,
     name: &'a str,
     price_in_cents: i32
 }
 
-pub fn resturant(connection: &SqliteConnection, name: &str, menu: &takedown::Menu) -> Result<(), Error> {
-    use schema::resturants;
+pub fn restaurant(connection: &SqliteConnection, name: &str, menu: &takedown::Menu) -> Result<(), Error> {
+    use schema::restaurants;
     use diesel::prelude::*;
-    let new_resturant = NewResturant {
+    let new_restaurant = NewRestaurant {
         name: name
     };
-    diesel::insert(&new_resturant).into(resturants::table)
+    diesel::insert(&new_restaurant).into(restaurants::table)
         .execute(connection)?;
 
-    let resturant_id = resturants::dsl::resturants
-        .filter(resturants::dsl::name.eq(name))
-        .load::<Resturant>(connection)?
+    let restaurant_id = restaurants::dsl::restaurants
+        .filter(restaurants::dsl::name.eq(name))
+        .load::<Restaurant>(connection)?
         [0].id;
 
     let menu_items_to_insert = menu.iter()
         .flat_map(|ref category| &category.entries)
         .map(|ref item| NewMenuItem {
-            resturant: resturant_id,
+            restaurant: restaurant_id,
             id: item.number,
             name: &item.name,
             price_in_cents: (item.price * 100.0) as i32
