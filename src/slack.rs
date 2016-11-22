@@ -36,6 +36,10 @@ pub fn log_params(req: &mut Request) -> IronResult<Response> {
 
     println!("Parsed GET request query string:\n {:?}", hashmap);
 
+    if hashmap.contains_key("sslcheck") {
+        return Ok(Response::with(status::Ok));
+    }
+
     let _state = req.extensions.get::<web::StateContainer>().unwrap().0.lock().unwrap();
 
     Ok(Response::with((
