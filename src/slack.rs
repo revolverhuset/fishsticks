@@ -40,7 +40,7 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
         return Ok(Response::with(status::Ok));
     }
 
-    let ref _state_mutex = req.extensions.get::<web::StateContainer>().unwrap().0;
+    let ref state_mutex = req.extensions.get::<web::StateContainer>().unwrap().0;
 
     let text = &hashmap.get("text").unwrap()[0];
     let mut split = text.splitn(2, ' ');
@@ -54,10 +54,30 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
                 serde_json::to_string(&SlackResponse {
                     response_type: ResponseType::Ephemeral,
                     text: "USAGE: /ffs command args...\n\
-                        /ffs help\n\tThis help",
+                        /ffs help\n\tThis help\
+                        /ffs resturants\n\tList known resturants\
+                        ",
                 }).unwrap(),
                 Header(ContentType::json()),
             ))),
+        "resturants" => {
+            let state = state_mutex.lock().unwrap();
+
+            let resturants = state.resturants().unwrap().into_iter()
+                .map(|x| x.name)
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            Ok(Response::with((
+                status::Ok,
+                serde_json::to_string(&SlackResponse {
+                    response_type: ResponseType::Ephemeral,
+                    text: &format!("I know of these resturants: {}",
+                        &resturants),
+                }).unwrap(),
+                Header(ContentType::json()),
+            )))
+        },
         _ =>
             Ok(Response::with((
                 status::Ok,
