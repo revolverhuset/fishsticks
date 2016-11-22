@@ -54,8 +54,8 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
                 serde_json::to_string(&SlackResponse {
                     response_type: ResponseType::Ephemeral,
                     text: "USAGE: /ffs command args...\n\
-                        /ffs help\n\tThis help\
-                        /ffs resturants\n\tList known resturants\
+                        /ffs help\n\tThis help\n\
+                        /ffs resturants\n\tList known resturants\n\
                         ",
                 }).unwrap(),
                 Header(ContentType::json()),
