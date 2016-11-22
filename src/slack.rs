@@ -1,4 +1,5 @@
 extern crate iron;
+extern crate serde;
 extern crate serde_json;
 extern crate urlencoded;
 
@@ -10,13 +11,27 @@ use self::iron::headers::ContentType;
 use self::iron::modifiers::Header;
 use self::urlencoded::UrlEncodedBody;
 
+enum ResponseType {
+    Ephemeral,
+    InChannel,
+}
+
+impl serde::Serialize for ResponseType {
+    fn serialize<S: serde::Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        serializer.serialize_str(match *self {
+            ResponseType::Ephemeral => "ephemeral",
+            ResponseType::InChannel => "in_channel",
+        })
+    }
+}
+
 #[derive(Serialize)]
 struct SlackResponse<'a> {
+    response_type: ResponseType,
     text: &'a str,
 }
 
 pub fn log_params(req: &mut Request) -> IronResult<Response> {
-    // Extract the decoded data as hashmap, using the UrlEncodedQuery plugin.
     let hashmap = req.get::<UrlEncodedBody>().unwrap();
 
     println!("Parsed GET request query string:\n {:?}", hashmap);
@@ -26,7 +41,8 @@ pub fn log_params(req: &mut Request) -> IronResult<Response> {
     Ok(Response::with((
         status::Ok,
         serde_json::to_string(&SlackResponse {
-            text: &format!("You said {:?}", &hashmap.get("text"))
+            response_type: ResponseType::Ephemeral,
+            text: &format!("You said {:?}", &hashmap.get("text").unwrap()),
         }).unwrap(),
         Header(ContentType::json()),
     )))
