@@ -40,7 +40,7 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
         return Ok(Response::with(status::Ok));
     }
 
-    let _state = req.extensions.get::<web::StateContainer>().unwrap().0.lock().unwrap();
+    let ref _state_mutex = req.extensions.get::<web::StateContainer>().unwrap().0;
 
     let text = &hashmap.get("text").unwrap()[0];
     let mut split = text.splitn(2, ' ');
@@ -53,8 +53,8 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
                 status::Ok,
                 serde_json::to_string(&SlackResponse {
                     response_type: ResponseType::Ephemeral,
-                    text: &format!("Use /ffs command args...\n\
-                        /ffs help\tThis help"),
+                    text: "USAGE: /ffs command args...\n\
+                        /ffs help\n\tThis help",
                 }).unwrap(),
                 Header(ContentType::json()),
             ))),
@@ -63,9 +63,8 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
                 status::Ok,
                 serde_json::to_string(&SlackResponse {
                     response_type: ResponseType::Ephemeral,
-                    text: &format!("Aw, shucks, I don't understand this:\n\
-                        Command {:?}, args {:?}\n\
-                        Try /ffs help", &cmd, &args),
+                    text: &format!("Aw, shucks, I don't understand /ffs {} {}\n\
+                        Try /ffs help", &cmd, &args.unwrap_or("")),
                 }).unwrap(),
                 Header(ContentType::json()),
             ))),
