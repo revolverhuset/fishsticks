@@ -6,6 +6,7 @@ extern crate serde_json;
 
 use std::sync::{Arc, Mutex};
 use std::collections::BTreeMap;
+use slack;
 use state;
 use takedown;
 
@@ -23,7 +24,7 @@ quick_error! {
     }
 }
 
-struct StateContainer(pub Arc<Mutex<state::State>>);
+pub struct StateContainer(pub Arc<Mutex<state::State>>);
 
 impl typemap::Key for StateContainer { type Value = StateContainer; }
 
@@ -92,6 +93,8 @@ pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
     router.get("/", index, "index");
     router.post("/ingest", ingest, "ingest");
     router.get("/resturant/:id", menu, "menu");
+
+    router.post("/slack", slack::log_params, "slack");
 
     let mut chain = Chain::new(router);
     chain.link_before(StateContainer(Arc::new(Mutex::new(state))));

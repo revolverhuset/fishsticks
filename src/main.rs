@@ -9,6 +9,7 @@ mod config;
 mod ingest;
 mod models;
 mod schema;
+mod slack;
 mod state;
 mod takedown;
 mod web;
