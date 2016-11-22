@@ -94,7 +94,7 @@ pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
     router.post("/ingest", ingest, "ingest");
     router.get("/resturant/:id", menu, "menu");
 
-    router.post("/slack", slack::log_params, "slack");
+    router.post("/slack", slack::slack, "slack");
 
     let mut chain = Chain::new(router);
     chain.link_before(StateContainer(Arc::new(Mutex::new(state))));

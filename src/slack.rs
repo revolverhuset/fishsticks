@@ -31,7 +31,7 @@ struct SlackResponse<'a> {
     text: &'a str,
 }
 
-pub fn log_params(req: &mut Request) -> IronResult<Response> {
+pub fn slack(req: &mut Request) -> IronResult<Response> {
     let hashmap = req.get::<UrlEncodedBody>().unwrap();
 
     println!("Parsed GET request query string:\n {:?}", hashmap);
