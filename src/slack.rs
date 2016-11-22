@@ -4,7 +4,6 @@ extern crate serde_json;
 extern crate urlencoded;
 
 use state;
-use std;
 use web;
 
 use self::iron::prelude::*;
@@ -13,21 +12,10 @@ use self::iron::headers::ContentType;
 use self::iron::modifiers::Header;
 use self::urlencoded::UrlEncodedBody;
 
-impl std::convert::From<state::Error> for iron::IronError {
-    fn from(err: state::Error) -> Self {
-        let response = serde_json::to_string(&SlackResponse {
-            response_type: ResponseType::Ephemeral,
-            text: &format!("{:?}", &err),
-        }).unwrap();
-
-        iron::IronError::new(
-            err,
-            (
-                status::InternalServerError,
-                response,
-                Header(ContentType::json()),
-            )
-        )
+quick_error! {
+    #[derive(Debug)]
+    enum Error {
+        StateError(err: state::Error) { from() }
     }
 }
 
@@ -46,18 +34,21 @@ impl serde::Serialize for ResponseType {
 }
 
 #[derive(Serialize)]
-struct SlackResponse<'a> {
+struct SlackResponse {
     response_type: ResponseType,
-    text: &'a str,
+    text: String,
 }
 
-pub fn slack(req: &mut Request) -> IronResult<Response> {
+fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
     let hashmap = req.get::<UrlEncodedBody>().unwrap();
 
     println!("Parsed GET request query string:\n {:?}", hashmap);
 
     if hashmap.contains_key("sslcheck") {
-        return Ok(Response::with(status::Ok));
+        return Ok(SlackResponse {
+            response_type: ResponseType::Ephemeral,
+            text: String::new(),
+        });
     }
 
     let ref state_mutex = req.extensions.get::<web::StateContainer>().unwrap().0;
@@ -69,18 +60,14 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
 
     match cmd {
         "help" =>
-            Ok(Response::with((
-                status::Ok,
-                serde_json::to_string(&SlackResponse {
-                    response_type: ResponseType::Ephemeral,
-                    text: "USAGE: /ffs command args...\n\
-                        /ffs help\n    This help\n\
-                        /ffs openorder RESTAURANT\n    Start a new order from the given restaurant\n\
-                        /ffs restaurants\n    List known restaurants\n\
-                        ",
-                }).unwrap(),
-                Header(ContentType::json()),
-            ))),
+            Ok(SlackResponse {
+                response_type: ResponseType::Ephemeral,
+                text: "USAGE: /ffs command args...\n\
+                    /ffs help\n    This help\n\
+                    /ffs openorder RESTAURANT\n    Start a new order from the given restaurant\n\
+                    /ffs restaurants\n    List known restaurants\n\
+                    ".to_owned(),
+            }),
         "restaurants" => {
             let state = state_mutex.lock().unwrap();
             let restaurants = state.restaurants().unwrap().into_iter()
@@ -88,15 +75,11 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
                 .collect::<Vec<_>>()
                 .join(", ");
 
-            Ok(Response::with((
-                status::Ok,
-                serde_json::to_string(&SlackResponse {
-                    response_type: ResponseType::Ephemeral,
-                    text: &format!("I know of these restaurants: {}",
-                        &restaurants),
-                }).unwrap(),
-                Header(ContentType::json()),
-            )))
+            Ok(SlackResponse {
+                response_type: ResponseType::Ephemeral,
+                text: format!("I know of these restaurants: {}",
+                    &restaurants),
+            })
         },
         "openorder" => {
             let state = state_mutex.lock().unwrap();
@@ -109,40 +92,45 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
                         .collect::<Vec<_>>()
                         .join(", ");
 
-                    return Ok(Response::with((
-                        status::Ok,
-                        serde_json::to_string(&SlackResponse {
-                            response_type: ResponseType::Ephemeral,
-                            text: &format!("Usage: /ffs openorder RESTAURANT\n\
-                                I know of these restaurants: {}",
-                                &restaurants),
-                        }).unwrap(),
-                        Header(ContentType::json()),
-                    )))
+                    return Ok(SlackResponse {
+                        response_type: ResponseType::Ephemeral,
+                        text: format!("Usage: /ffs openorder RESTAURANT\n\
+                            I know of these restaurants: {}",
+                            &restaurants),
+                    })
                 },
             };
 
             let _new_order = state.create_order(restaurant.id)?;
 
-            Ok(Response::with((
-                status::Ok,
-                serde_json::to_string(&SlackResponse {
-                    response_type: ResponseType::InChannel,
-                    text: &format!(":bell: Now taking orders from the {} menu :memo:",
-                        &restaurant.name),
-                }).unwrap(),
-                Header(ContentType::json()),
-            )))
+            Ok(SlackResponse {
+                response_type: ResponseType::InChannel,
+                text: format!(":bell: Now taking orders from the {} menu :memo:",
+                    &restaurant.name),
+            })
         },
         _ =>
-            Ok(Response::with((
-                status::Ok,
-                serde_json::to_string(&SlackResponse {
-                    response_type: ResponseType::Ephemeral,
-                    text: &format!(":confused: Aw, shucks, I don't understand /ffs {} {}\n\
-                        Try /ffs help", &cmd, &args),
-                }).unwrap(),
-                Header(ContentType::json()),
-            ))),
+            Ok(SlackResponse {
+                response_type: ResponseType::Ephemeral,
+                text: format!(":confused: Aw, shucks, I don't understand /ffs {} {}\n\
+                    Try /ffs help", &cmd, &args),
+            }),
+    }
+}
+
+pub fn slack(req: &mut Request) -> IronResult<Response> {
+    match slack_core(req) {
+        Ok(response) => Ok(Response::with((
+            status::Ok,
+            serde_json::to_string(&response).unwrap(),
+            Header(ContentType::json()),
+        ))),
+        Err(err) => Ok(Response::with((
+            status::InternalServerError,
+            serde_json::to_string(&SlackResponse {
+                response_type: ResponseType::Ephemeral,
+                text: format!("{:?}", &err),
+            }).unwrap(),
+        )))
     }
 }
