@@ -30,6 +30,16 @@ impl State {
         Ok(restaurants.load::<models::Restaurant>(&self.db_connection)?)
     }
 
+    pub fn restaurant_by_name(&self, query_name: &str) -> Result<Option<models::Restaurant>, Error> {
+        use schema::restaurants::dsl::*;
+
+        Ok(restaurants
+            .filter(name.eq(query_name))
+            .limit(1)
+            .load::<models::Restaurant>(&self.db_connection)?
+            .pop())
+    }
+
     pub fn menu(&self, restaurant_id: i32) -> Result<Vec<models::MenuItem>, Error> {
         use schema::menu_items::dsl::*;
 
@@ -44,5 +54,9 @@ impl State {
             ingest::restaurant(&self.db_connection, restaurant, menu)
         })?;
         Ok(())
+    }
+
+    pub fn create_order(&self, _restaurant_id: i32) -> Result<(), Error> {
+        Ok(()) //unimplemented!()
     }
 }
