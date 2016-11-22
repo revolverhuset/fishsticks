@@ -42,12 +42,32 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
 
     let _state = req.extensions.get::<web::StateContainer>().unwrap().0.lock().unwrap();
 
-    Ok(Response::with((
-        status::Ok,
-        serde_json::to_string(&SlackResponse {
-            response_type: ResponseType::Ephemeral,
-            text: &format!("You said {:?}", &hashmap.get("text").unwrap()),
-        }).unwrap(),
-        Header(ContentType::json()),
-    )))
+    let text = &hashmap.get("text").unwrap()[0];
+    let mut split = text.splitn(2, ' ');
+    let cmd = split.next().unwrap();
+    let args = split.next();
+
+    match cmd {
+        "help" =>
+            Ok(Response::with((
+                status::Ok,
+                serde_json::to_string(&SlackResponse {
+                    response_type: ResponseType::Ephemeral,
+                    text: &format!("Use /ffs command args...\n\
+                        /ffs help\tThis help"),
+                }).unwrap(),
+                Header(ContentType::json()),
+            ))),
+        _ =>
+            Ok(Response::with((
+                status::Ok,
+                serde_json::to_string(&SlackResponse {
+                    response_type: ResponseType::Ephemeral,
+                    text: &format!("Aw, shucks, I don't understand this:\n\
+                        Command {:?}, args {:?}\n\
+                        Try /ffs help", &cmd, &args),
+                }).unwrap(),
+                Header(ContentType::json()),
+            ))),
+    }
 }
