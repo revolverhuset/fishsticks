@@ -4,7 +4,7 @@ extern crate serde_json;
 extern crate urlencoded;
 
 use state;
-use std::convert;
+use std;
 use web;
 
 use self::iron::prelude::*;
@@ -13,7 +13,7 @@ use self::iron::headers::ContentType;
 use self::iron::modifiers::Header;
 use self::urlencoded::UrlEncodedBody;
 
-impl convert::From<state::Error> for iron::IronError {
+impl std::convert::From<state::Error> for iron::IronError {
     fn from(err: state::Error) -> Self {
         let response = serde_json::to_string(&SlackResponse {
             response_type: ResponseType::Ephemeral,
@@ -74,8 +74,9 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
                 serde_json::to_string(&SlackResponse {
                     response_type: ResponseType::Ephemeral,
                     text: "USAGE: /ffs command args...\n\
-                        /ffs help\n\tThis help\n\
-                        /ffs restaurants\n\tList known restaurants\n\
+                        /ffs help\n    This help\n\
+                        /ffs openorder RESTAURANT\n    Start a new order from the given restaurant\n\
+                        /ffs restaurants\n    List known restaurants\n\
                         ",
                 }).unwrap(),
                 Header(ContentType::json()),
