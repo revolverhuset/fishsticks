@@ -6,6 +6,7 @@ use web;
 
 use self::iron::prelude::*;
 use self::iron::status;
+use self::iron::headers::ContentType;
 use self::urlencoded::UrlEncodedBody;
 
 #[derive(Serialize)]
@@ -21,7 +22,14 @@ pub fn log_params(req: &mut Request) -> IronResult<Response> {
 
     let _state = req.extensions.get::<web::StateContainer>().unwrap().0.lock().unwrap();
 
-    Ok(Response::with((status::Ok, serde_json::to_string(&SlackResponse {
-        text: &format!("You said {:?}", &hashmap.get("text"))
-    }).unwrap())))
+    let mut res = Response::with((
+        status::Ok,
+        serde_json::to_string(&SlackResponse {
+            text: &format!("You said {:?}", &hashmap.get("text"))
+        }).unwrap()
+    ));
+
+    res.headers.set(ContentType::json());
+
+    Ok(res)
 }
