@@ -4,6 +4,7 @@ extern crate serde_json;
 extern crate urlencoded;
 
 use state;
+use std;
 use web;
 
 use self::iron::prelude::*;
@@ -16,6 +17,14 @@ quick_error! {
     #[derive(Debug)]
     enum Error {
         StateError(err: state::Error) { from() }
+        UrlDecodingError(err: urlencoded::UrlDecodingError) { from() }
+        PoisonError
+    }
+}
+
+impl<T> std::convert::From<std::sync::PoisonError<T>> for Error {
+    fn from(_err: std::sync::PoisonError<T>) -> Self {
+        Error::PoisonError
     }
 }
 
@@ -40,7 +49,7 @@ struct SlackResponse {
 }
 
 fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
-    let hashmap = req.get::<UrlEncodedBody>().unwrap();
+    let hashmap = req.get::<UrlEncodedBody>()?;
 
     println!("Parsed GET request query string:\n {:?}", hashmap);
 
@@ -69,8 +78,8 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                     ".to_owned(),
             }),
         "restaurants" => {
-            let state = state_mutex.lock().unwrap();
-            let restaurants = state.restaurants().unwrap().into_iter()
+            let state = state_mutex.lock()?;
+            let restaurants = state.restaurants()?.into_iter()
                 .map(|x| x.name)
                 .collect::<Vec<_>>()
                 .join(", ");
@@ -82,12 +91,12 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
             })
         },
         "openorder" => {
-            let state = state_mutex.lock().unwrap();
+            let state = state_mutex.lock()?;
 
             let restaurant = match state.restaurant_by_name(args)? {
                 Some(resturant) => resturant,
                 None => {
-                    let restaurants = state.restaurants().unwrap().into_iter()
+                    let restaurants = state.restaurants()?.into_iter()
                         .map(|x| x.name)
                         .collect::<Vec<_>>()
                         .join(", ");
