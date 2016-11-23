@@ -150,6 +150,7 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
                 response_type: ResponseType::Ephemeral,
                 text: format!("{:?}", &err),
             }).unwrap(),
+            Header(ContentType::json()),
         )))
     }
 }
