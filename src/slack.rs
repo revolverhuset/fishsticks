@@ -118,6 +118,16 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                     &restaurant.name),
             })
         },
+        "closeorder" => {
+            let state = state_mutex.lock()?;
+
+            state.close_current_order()?;
+
+            Ok(SlackResponse {
+                response_type: ResponseType::InChannel,
+                text: format!("No longer taking orders"),
+            })
+        }
         _ =>
             Ok(SlackResponse {
                 response_type: ResponseType::Ephemeral,

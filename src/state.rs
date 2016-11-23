@@ -1,6 +1,9 @@
+extern crate time;
+
 use diesel;
-use models;
 use ingest;
+use models;
+use std;
 use takedown;
 
 use diesel::prelude::*;
@@ -9,12 +12,35 @@ quick_error! {
     #[derive(Debug)]
     pub enum Error {
         Diesel(err: diesel::result::Error) { from() }
-        IngestError(err: diesel::result::TransactionError<ingest::Error>) { from() }
+        Ingest(err: ingest::Error) { from() }
+        OrderAlreadyOpen(current_open_order: models::Order) { }
+        OrderAlreadyClosed(order: models::Order) { }
+        CouldntCreateTransaction(err: diesel::result::Error) { }
+        NoOpenOrder
+    }
+}
+
+impl<T> std::convert::From<diesel::result::TransactionError<T>> for Error
+    where Error: std::convert::From<T>
+{
+    fn from(err: diesel::result::TransactionError<T>) -> Error {
+        match err {
+            diesel::result::TransactionError::CouldntCreateTransaction(err) => {
+                Error::CouldntCreateTransaction(err)
+            }
+            diesel::result::TransactionError::UserReturnedError(err) => {
+                err.into()
+            }
+        }
     }
 }
 
 pub struct State {
     db_connection: diesel::sqlite::SqliteConnection,
+}
+
+fn timestamp() -> i32 {
+    time::now().to_timespec().sec as i32
 }
 
 impl State {
@@ -56,7 +82,63 @@ impl State {
         Ok(())
     }
 
-    pub fn create_order(&self, _restaurant_id: i32) -> Result<(), Error> {
-        Ok(()) //unimplemented!()
+    pub fn current_open_order(&self) -> Result<Option<models::Order>, Error> {
+        use schema::orders::dsl::*;
+
+        Ok(orders
+            .filter(closed.is_null())
+            .limit(1)
+            .load::<models::Order>(&self.db_connection)?
+            .pop())
+    }
+
+    pub fn create_order(&self, restaurant_id: i32) -> Result<(), Error> {
+        use schema::orders;
+
+        #[derive(Insertable)]
+        #[table_name="orders"]
+        struct NewOrder {
+            pub restaurant: i32,
+            pub overhead_in_cents: i32,
+            pub opened: i32,
+        }
+
+        self.db_connection.transaction(|| {
+            if let Some(current) = self.current_open_order()? {
+                return Err(Error::OrderAlreadyOpen(current));
+            }
+
+            let new_order = NewOrder {
+                restaurant: restaurant_id,
+                overhead_in_cents: 0,
+                opened: timestamp(),
+            };
+
+            diesel::insert(&new_order).into(orders::table)
+                .execute(&self.db_connection)?;
+
+            Ok(())
+        })?;
+
+        Ok(())
+    }
+
+    pub fn close_current_order(&self) -> Result<(), Error> {
+        use schema::orders::dsl::*;
+
+        self.db_connection.transaction(|| {
+            let current = self.current_open_order()?.ok_or(Error::NoOpenOrder)?;
+
+            if current.closed.is_some() {
+                return Err(Error::OrderAlreadyClosed(current));
+            }
+
+            diesel::update(orders.find(current.id))
+                .set(closed.eq(timestamp()))
+                .execute(&self.db_connection)?;
+
+            Ok(())
+        })?;
+        Ok(())
     }
 }
