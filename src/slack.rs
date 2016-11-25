@@ -209,21 +209,35 @@ fn cmd_summary(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackRe
 }
 
 fn cmd_associate(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> Result<SlackResponse, Error> {
-    let split = args.split_whitespace().collect::<Vec<_>>();
-    let (slack_name, sharebill_account) = match split.len() {
-        1 => (user_name, split[0]),
-        2 => (split[0], split[1]),
-        _ => return Err(Error::InputError),
-    };
+    if args.len() == 0 {
+        let state = state_mutex.lock()?;
+        let associations = state.all_associations()?.into_iter()
+            .map(|x| format!("{} \u{2192} {}", &x.slack_name, &x.sharebill_account))
+            .collect::<Vec<_>>()
+            .join("\n    ");
 
-    let state = state_mutex.lock()?;
-    state.set_association(slack_name, sharebill_account)?;
+        Ok(SlackResponse {
+            response_type: ResponseType::Ephemeral,
+            text: format!("I have the following mappings from slack names to sharebill accounts:\n    {}",
+                &associations),
+        })
+    } else {
+        let split = args.split_whitespace().collect::<Vec<_>>();
+        let (slack_name, sharebill_account) = match split.len() {
+            1 => (user_name, split[0]),
+            2 => (split[0], split[1]),
+            _ => return Err(Error::InputError),
+        };
 
-    Ok(SlackResponse {
-        response_type: ResponseType::Ephemeral,
-        text: format!("Billing orders by {} to account {}. Got it :+1:",
-            slack_name, sharebill_account),
-    })
+        let state = state_mutex.lock()?;
+        state.set_association(slack_name, sharebill_account)?;
+
+        Ok(SlackResponse {
+            response_type: ResponseType::Ephemeral,
+            text: format!("Billing orders by {} to account {}. Got it :+1:",
+                slack_name, sharebill_account),
+        })
+    }
 }
 
 fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
@@ -253,6 +267,7 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                 response_type: ResponseType::Ephemeral,
                 text: "USAGE: /ffs command args...\n\
                     associate [SLACK_NAME] SHAREBILL_ACCOUNT\n    Associate the given slack name (defaults to your name) with the given sharebill account\n\
+                    associate\n    Display all slack name-sharebill account associations\n\
                     closeorder\n    Close the current order\n\
                     help\n    This help\n\
                     openorder RESTAURANT\n    Start a new order from the given restaurant\n\

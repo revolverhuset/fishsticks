@@ -33,3 +33,9 @@ pub struct OrderItem {
     pub person_name: String,
     pub menu_item: i32,
 }
+
+#[derive(Debug, Queryable, Serialize)]
+pub struct SharebillAssociation {
+    pub slack_name: String,
+    pub sharebill_account: String,
+}

@@ -247,4 +247,13 @@ impl State {
 
         Ok(())
     }
+
+    pub fn all_associations(&self) -> Result<Vec<models::SharebillAssociation>, Error> {
+        use schema::sharebill_associations::dsl::*;
+
+        Ok(sharebill_associations
+            .order(slack_name.asc())
+            .load::<models::SharebillAssociation>(&self.db_connection)?
+        )
+    }
 }
