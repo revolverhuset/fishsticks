@@ -1,10 +1,13 @@
+use schema::{menu_items, order_items};
+
 #[derive(Debug, Queryable, Serialize)]
 pub struct Restaurant {
     pub id: i32,
     pub name: String,
 }
 
-#[derive(Debug, Queryable, Serialize)]
+#[derive(Debug, Queryable, Serialize, Identifiable, Associations)]
+#[has_many(order_items, foreign_key="menu_item")]
 pub struct MenuItem {
     pub id: i32,
     pub restaurant: i32,
@@ -22,7 +25,8 @@ pub struct Order {
     pub closed: Option<i32>,
 }
 
-#[derive(Debug, Queryable, Serialize)]
+#[derive(Debug, Queryable, Serialize, Identifiable, Associations)]
+#[belongs_to(MenuItem)]
 pub struct OrderItem {
     pub id: i32,
     pub order: i32,

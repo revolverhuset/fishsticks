@@ -17,7 +17,6 @@ quick_error! {
         OrderAlreadyClosed(order: models::Order) { }
         CouldntCreateTransaction(err: diesel::result::Error) { }
         NoOpenOrder
-        NotFound
     }
 }
 
@@ -202,24 +201,28 @@ impl State {
         Ok(())
     }
 
-    pub fn items_in_order(&self, order_id: i32) -> Result<Vec<models::OrderItem>, Error> {
+    pub fn items_in_order(&self, order_id: i32) -> Result<Vec<(models::MenuItem, models::OrderItem)>, Error> {
         use schema::order_items::dsl::*;
+        use schema::menu_items;
 
-        Ok(order_items
+        let oitems = order_items
             .filter(order.eq(order_id))
             .order(person_name.asc())
-            .load::<models::OrderItem>(&self.db_connection)?)
-    }
+            .load::<models::OrderItem>(&self.db_connection)?;
 
-    pub fn menu_item_name(&self, restaurant_id: i32, menu_item_id: i32) -> Result<String, Error> {
-        use schema::menu_items::dsl::*;
+        let mut result = Vec::<(models::MenuItem, models::OrderItem)>::new();
 
-        Ok(menu_items
-            .filter(restaurant.eq(restaurant_id))
-            .filter(id.eq(menu_item_id))
-            .limit(1)
-            .load::<models::MenuItem>(&self.db_connection)?
-            .pop().ok_or(Error::NotFound)?
-            .name)
+        // Join manually, because I am unable to get Diesel to do it for me :(
+        for oitem in oitems {
+            result.push((
+                menu_items::table
+                    .find(oitem.menu_item)
+                    .load(&self.db_connection)?
+                    .pop().unwrap(),
+                oitem,
+            ));
+        }
+
+        Ok(result)
     }
 }

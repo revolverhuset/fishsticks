@@ -218,10 +218,11 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
             let items = state.items_in_order(open_order.id)?;
 
             let blob = items.into_iter()
-                .map(|x| {
-                    format!("{}: {}",
-                        x.person_name,
-                        state.menu_item_name(open_order.restaurant, x.menu_item).unwrap()
+                .map(|(menu_item, order_item)| {
+                    format!("{}: {}. {}",
+                        order_item.person_name,
+                        menu_item.number,
+                        menu_item.name,
                     )
                 })
                 .collect::<Vec<_>>()
