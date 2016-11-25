@@ -229,7 +229,7 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
 
             Ok(SlackResponse {
                 response_type: ResponseType::Ephemeral,
-                text: format!(":clipboard: I've got:\n{}", blob),
+                text: format!(":raising_hand::memo: I've got:\n{}", blob),
             })
         },
         _ =>
