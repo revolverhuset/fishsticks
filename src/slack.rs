@@ -118,6 +118,7 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                     /ffs order QUERY\n    Order whatever matches QUERY in the menu\n\
                     /ffs restaurants\n    List known restaurants\n\
                     /ffs search QUERY\n    See what matches QUERY in the menu\n\
+                    /ffs summary\n    See the current order\n\
                     ".to_owned(),
             }),
         "restaurants" => {
@@ -175,7 +176,6 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
             let query = state::Query::interpret_string(&args);
 
             let state = state_mutex.lock()?;
-
             let open_order = state.demand_open_order()?;
 
             match state.query_menu(open_order.restaurant, &query)? {
@@ -194,7 +194,6 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
             let query = state::Query::interpret_string(&args);
 
             let state = state_mutex.lock()?;
-
             let open_order = state.demand_open_order()?;
 
             match state.query_menu(open_order.restaurant, &query)? {
@@ -202,7 +201,7 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                     state.add_order_item(open_order.id, user_name, menu_item.id)?;
 
                     Ok(SlackResponse {
-                        response_type: ResponseType::Ephemeral,
+                        response_type: ResponseType::InChannel,
                         text: format!(":information_desk_person: {} the {} {} {}. {}",
                             affirm(), adjective(), noun(), &menu_item.id, &menu_item.name),
                     })
@@ -212,6 +211,27 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                     text: format!(":person_frowning: I found no matches for {:?}", &args),
                 }),
             }
+        },
+        "summary" => {
+            let state = state_mutex.lock()?;
+            let open_order = state.demand_open_order()?;
+            let items = state.items_in_order(open_order.id)?;
+
+            let blob = items.into_iter()
+                .map(|x| {
+                    format!("{}: {}. {}",
+                        x.person_name,
+                        x.menu_item,
+                        state.menu_item_name(open_order.restaurant, x.menu_item).unwrap()
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            Ok(SlackResponse {
+                response_type: ResponseType::Ephemeral,
+                text: format!(":clipboard: I've got:\n{}", blob),
+            })
         },
         _ =>
             Ok(SlackResponse {
