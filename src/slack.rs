@@ -113,12 +113,13 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
             Ok(SlackResponse {
                 response_type: ResponseType::Ephemeral,
                 text: "USAGE: /ffs command args...\n\
-                    /ffs help\n    This help\n\
-                    /ffs openorder RESTAURANT\n    Start a new order from the given restaurant\n\
-                    /ffs order QUERY\n    Order whatever matches QUERY in the menu\n\
-                    /ffs restaurants\n    List known restaurants\n\
-                    /ffs search QUERY\n    See what matches QUERY in the menu\n\
-                    /ffs summary\n    See the current order\n\
+                    closeorder\n    Close the current order\n\
+                    help\n    This help\n\
+                    openorder RESTAURANT\n    Start a new order from the given restaurant\n\
+                    order QUERY\n    Order whatever matches QUERY in the menu\n\
+                    restaurants\n    List known restaurants\n\
+                    search QUERY\n    See what matches QUERY in the menu\n\
+                    summary\n    See the current order\n\
                     ".to_owned(),
             }),
         "restaurants" => {
