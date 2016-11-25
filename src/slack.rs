@@ -14,30 +14,42 @@ use self::iron::headers::ContentType;
 use self::iron::modifiers::Header;
 use self::urlencoded::UrlEncodedBody;
 
-const ADJECTIVES: &'static [&'static str] = &[
-    "delicious",
-    "tasty",
-    "yummy",
-    "edible",
-    "awesome",
-    "sick",
-];
-
-const NOUNS: &'static [&'static str] = &[
-    "treat",
-    "edible",
-    "food",
-    "fishstick",
-];
-
 fn adjective() -> &'static str {
+    const ADJECTIVES: &'static [&'static str] = &[
+        "delicious",
+        "tasty",
+        "yummy",
+        "edible",
+        "awesome",
+        "sick",
+    ];
+
     use self::rand::Rng;
     rand::thread_rng().choose(ADJECTIVES).unwrap()
 }
 
 fn noun() -> &'static str {
+    const NOUNS: &'static [&'static str] = &[
+        "treat",
+        "edible",
+        "food",
+        "fishstick",
+    ];
+
     use self::rand::Rng;
     rand::thread_rng().choose(NOUNS).unwrap()
+}
+
+fn affirm() -> &'static str {
+    const STRS: &'static [&'static str] = &[
+        "I'll get you",
+        "You're getting",
+        "I'mma get you",
+        "I'm taking that down as",
+    ];
+
+    use self::rand::Rng;
+    rand::thread_rng().choose(STRS).unwrap()
 }
 
 quick_error! {
@@ -103,8 +115,9 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                 text: "USAGE: /ffs command args...\n\
                     /ffs help\n    This help\n\
                     /ffs openorder RESTAURANT\n    Start a new order from the given restaurant\n\
+                    /ffs order QUERY\n    Order whatever matches QUERY in the menu\n\
                     /ffs restaurants\n    List known restaurants\n\
-                    /ffs search QUERY\n    Look for QUERY in the menu\n\
+                    /ffs search QUERY\n    See what matches QUERY in the menu\n\
                     ".to_owned(),
             }),
         "restaurants" => {
@@ -177,6 +190,29 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                 }),
             }
         },
+        "order" => {
+            let query = state::Query::interpret_string(&args);
+
+            let state = state_mutex.lock()?;
+
+            let open_order = state.demand_open_order()?;
+
+            match state.query_menu(open_order.restaurant, &query)? {
+                Some(menu_item) => {
+                    state.add_order_item(open_order.id, user_name, menu_item.id)?;
+
+                    Ok(SlackResponse {
+                        response_type: ResponseType::Ephemeral,
+                        text: format!(":information_desk_person: {} the {} {} {}. {}",
+                            affirm(), adjective(), noun(), &menu_item.id, &menu_item.name),
+                    })
+                },
+                None => Ok(SlackResponse {
+                    response_type: ResponseType::Ephemeral,
+                    text: format!(":person_frowning: I found no matches for {:?}", &args),
+                }),
+            }
+        },
         _ =>
             Ok(SlackResponse {
                 response_type: ResponseType::Ephemeral,
@@ -197,7 +233,7 @@ pub fn slack(req: &mut Request) -> IronResult<Response> {
             status::InternalServerError,
             serde_json::to_string(&SlackResponse {
                 response_type: ResponseType::Ephemeral,
-                text: format!("{:?}", &err),
+                text: format!(":no_good: {:?}", &err),
             }).unwrap(),
             Header(ContentType::json()),
         )))

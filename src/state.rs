@@ -175,4 +175,27 @@ impl State {
             .load::<models::MenuItem>(&self.db_connection)?
             .pop())
     }
+
+    pub fn add_order_item(&self, order: i32, person_name: &str, menu_item: i32) -> Result<(), Error> {
+        use schema::order_items;
+
+        #[derive(Insertable)]
+        #[table_name="order_items"]
+        struct NewOrderItem<'a> {
+            pub order: i32,
+            pub person_name: &'a str,
+            pub menu_item: i32,
+        }
+
+        let new_order_item = NewOrderItem {
+            order: order,
+            person_name: person_name,
+            menu_item: menu_item,
+        };
+
+        diesel::insert(&new_order_item).into(order_items::table)
+            .execute(&self.db_connection)?;
+
+        Ok(())
+    }
 }
