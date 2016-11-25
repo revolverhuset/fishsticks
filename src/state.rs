@@ -167,9 +167,11 @@ impl State {
 
         Ok(match *query {
             Query::ExactInteger(integer) =>
-                menu_items.filter(id.eq(integer)).into_boxed(),
+                menu_items.filter(number.eq(integer)).into_boxed(),
             Query::FuzzyString(string) =>
-                menu_items.filter(name.eq(string)).into_boxed(),
+                menu_items
+                    .filter(name.eq(string))
+                    .into_boxed(),
         }
             .filter(restaurant.eq(restaurant_id))
             .limit(1)

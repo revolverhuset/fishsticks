@@ -182,7 +182,7 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                 Some(menu_item) => Ok(SlackResponse {
                     response_type: ResponseType::Ephemeral,
                     text: format!(":information_desk_person: That query matches the {} \
-                        {} {}. {}", adjective(), noun(), &menu_item.id, &menu_item.name),
+                        {} {}. {}", adjective(), noun(), &menu_item.number, &menu_item.name),
                 }),
                 None => Ok(SlackResponse {
                     response_type: ResponseType::Ephemeral,
@@ -203,7 +203,7 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                     Ok(SlackResponse {
                         response_type: ResponseType::InChannel,
                         text: format!(":information_desk_person: {} the {} {} {}. {}",
-                            affirm(), adjective(), noun(), &menu_item.id, &menu_item.name),
+                            affirm(), adjective(), noun(), &menu_item.number, &menu_item.name),
                     })
                 },
                 None => Ok(SlackResponse {
@@ -219,9 +219,8 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
 
             let blob = items.into_iter()
                 .map(|x| {
-                    format!("{}: {}. {}",
+                    format!("{}: {}",
                         x.person_name,
-                        x.menu_item,
                         state.menu_item_name(open_order.restaurant, x.menu_item).unwrap()
                     )
                 })
