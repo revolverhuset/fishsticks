@@ -1,4 +1,5 @@
 extern crate iron;
+extern crate rand;
 extern crate serde;
 extern crate serde_json;
 extern crate urlencoded;
@@ -67,6 +68,8 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
     let cmd = split.next().unwrap();
     let args = split.next().unwrap_or("");
 
+    let user_name = &hashmap.get("user_name").unwrap()[0];
+
     match cmd {
         "help" =>
             Ok(SlackResponse {
@@ -75,6 +78,7 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                     /ffs help\n    This help\n\
                     /ffs openorder RESTAURANT\n    Start a new order from the given restaurant\n\
                     /ffs restaurants\n    List known restaurants\n\
+                    /ffs search QUERY\n    Look for QUERY in the menu\n\
                     ".to_owned(),
             }),
         "restaurants" => {
@@ -127,7 +131,44 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                 response_type: ResponseType::InChannel,
                 text: format!("No longer taking orders"),
             })
-        }
+        },
+        "search" => {
+            let query = state::Query::interpret_string(&args);
+            println!("Looking for {:?}", &query);
+
+            let state = state_mutex.lock()?;
+
+            let adjectives = vec![
+                "delicious",
+                "tasty",
+                "yummy",
+                "edible",
+                "awesome",
+                "sick",
+            ];
+            let nouns = vec![
+                "treat",
+                "edible",
+                "food",
+                "fishstick",
+            ];
+
+            use self::rand::Rng;
+            let adjective = rand::thread_rng().choose(&adjectives).unwrap();
+            let noun = rand::thread_rng().choose(&nouns).unwrap();
+
+            match state.query_open_menu(&query)? {
+                Some(menu_item) => Ok(SlackResponse {
+                    response_type: ResponseType::Ephemeral,
+                    text: format!(":information_desk_person: That query matches the {} \
+                        {} {}. {}", adjective, noun, &menu_item.id, &menu_item.name),
+                }),
+                None => Ok(SlackResponse {
+                    response_type: ResponseType::Ephemeral,
+                    text: format!(":person_frowning: I found no matches for {:?}", &args),
+                }),
+            }
+        },
         _ =>
             Ok(SlackResponse {
                 response_type: ResponseType::Ephemeral,

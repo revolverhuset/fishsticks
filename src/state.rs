@@ -35,6 +35,21 @@ impl<T> std::convert::From<diesel::result::TransactionError<T>> for Error
     }
 }
 
+#[derive(Debug)]
+pub enum Query<'a> {
+    ExactInteger(i32),
+    FuzzyString(&'a str),
+}
+
+impl<'a, 'b> Query<'a> where 'b: 'a {
+    pub fn interpret_string(input: &'b str) -> Query<'a> {
+        match input.parse::<i32>() {
+            Ok(integer) => Query::ExactInteger(integer),
+            Err(_) => Query::FuzzyString(input),
+        }
+    }
+}
+
 pub struct State {
     db_connection: diesel::sqlite::SqliteConnection,
 }
@@ -140,5 +155,27 @@ impl State {
             Ok(())
         })?;
         Ok(())
+    }
+
+    pub fn query_open_menu(&self, query: &Query) -> Result<Option<models::MenuItem>, Error> {
+        use schema::menu_items::dsl::*;
+
+        Ok(self.db_connection.transaction(|| -> Result<_, Error> {
+            let current = self.current_open_order()?.ok_or(Error::NoOpenOrder)?;
+
+            let menu_item =
+                match *query {
+                    Query::ExactInteger(integer) =>
+                        menu_items.filter(id.eq(integer)).into_boxed(),
+                    Query::FuzzyString(string) =>
+                        menu_items.filter(name.eq(string)).into_boxed(),
+                }
+                .filter(restaurant.eq(current.restaurant))
+                .limit(1)
+                .load::<models::MenuItem>(&self.db_connection)?
+                .pop();
+
+            Ok(menu_item)
+        })?)
     }
 }
