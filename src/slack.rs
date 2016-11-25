@@ -14,6 +14,32 @@ use self::iron::headers::ContentType;
 use self::iron::modifiers::Header;
 use self::urlencoded::UrlEncodedBody;
 
+const ADJECTIVES: &'static [&'static str] = &[
+    "delicious",
+    "tasty",
+    "yummy",
+    "edible",
+    "awesome",
+    "sick",
+];
+
+const NOUNS: &'static [&'static str] = &[
+    "treat",
+    "edible",
+    "food",
+    "fishstick",
+];
+
+fn adjective() -> &'static str {
+    use self::rand::Rng;
+    rand::thread_rng().choose(ADJECTIVES).unwrap()
+}
+
+fn noun() -> &'static str {
+    use self::rand::Rng;
+    rand::thread_rng().choose(NOUNS).unwrap()
+}
+
 quick_error! {
     #[derive(Debug)]
     enum Error {
@@ -134,28 +160,8 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
         },
         "search" => {
             let query = state::Query::interpret_string(&args);
-            println!("Looking for {:?}", &query);
 
             let state = state_mutex.lock()?;
-
-            let adjectives = vec![
-                "delicious",
-                "tasty",
-                "yummy",
-                "edible",
-                "awesome",
-                "sick",
-            ];
-            let nouns = vec![
-                "treat",
-                "edible",
-                "food",
-                "fishstick",
-            ];
-
-            use self::rand::Rng;
-            let adjective = rand::thread_rng().choose(&adjectives).unwrap();
-            let noun = rand::thread_rng().choose(&nouns).unwrap();
 
             let open_order = state.demand_open_order()?;
 
@@ -163,7 +169,7 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                 Some(menu_item) => Ok(SlackResponse {
                     response_type: ResponseType::Ephemeral,
                     text: format!(":information_desk_person: That query matches the {} \
-                        {} {}. {}", adjective, noun, &menu_item.id, &menu_item.name),
+                        {} {}. {}", adjective(), noun(), &menu_item.id, &menu_item.name),
                 }),
                 None => Ok(SlackResponse {
                     response_type: ResponseType::Ephemeral,
