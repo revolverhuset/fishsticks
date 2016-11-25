@@ -1,0 +1,2 @@
+DROP INDEX sharebill_associations_slack_name;
+DROP TABLE sharebill_associations;

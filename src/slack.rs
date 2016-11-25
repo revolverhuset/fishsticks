@@ -58,6 +58,7 @@ quick_error! {
         StateError(err: state::Error) { from() }
         UrlDecodingError(err: urlencoded::UrlDecodingError) { from() }
         PoisonError
+        InputError
     }
 }
 
@@ -207,6 +208,24 @@ fn cmd_summary(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackRe
     })
 }
 
+fn cmd_associate(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> Result<SlackResponse, Error> {
+    let split = args.split_whitespace().collect::<Vec<_>>();
+    let (slack_name, sharebill_account) = match split.len() {
+        1 => (user_name, split[0]),
+        2 => (split[0], split[1]),
+        _ => return Err(Error::InputError),
+    };
+
+    let state = state_mutex.lock()?;
+    state.set_association(slack_name, sharebill_account)?;
+
+    Ok(SlackResponse {
+        response_type: ResponseType::Ephemeral,
+        text: format!("Billing orders by {} to account {}. Got it :+1:",
+            slack_name, sharebill_account),
+    })
+}
+
 fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
     let hashmap = req.get::<UrlEncodedBody>()?;
 
@@ -233,6 +252,7 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
             Ok(SlackResponse {
                 response_type: ResponseType::Ephemeral,
                 text: "USAGE: /ffs command args...\n\
+                    associate [SLACK_NAME] SHAREBILL_ACCOUNT\n    Associate the given slack name (defaults to your name) with the given sharebill account\n\
                     closeorder\n    Close the current order\n\
                     help\n    This help\n\
                     openorder RESTAURANT\n    Start a new order from the given restaurant\n\
@@ -242,11 +262,12 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                     summary\n    See the current order\n\
                     ".to_owned(),
             }),
-        "restaurants" => cmd_restaurants(&state_mutex, args),
-        "openorder" => cmd_openorder(&state_mutex, args),
+        "associate" => cmd_associate(&state_mutex, args, user_name),
         "closeorder" => cmd_closeorder(&state_mutex, args),
-        "search" => cmd_search(&state_mutex, args),
+        "openorder" => cmd_openorder(&state_mutex, args),
         "order" => cmd_order(&state_mutex, args, user_name),
+        "restaurants" => cmd_restaurants(&state_mutex, args),
+        "search" => cmd_search(&state_mutex, args),
         "summary" => cmd_summary(&state_mutex, args),
         _ =>
             Ok(SlackResponse {

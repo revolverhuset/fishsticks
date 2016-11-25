@@ -225,4 +225,26 @@ impl State {
 
         Ok(result)
     }
+
+    pub fn set_association(&self, slack_name: &str, sharebill_account: &str) -> Result<(), Error> {
+        use schema::sharebill_associations;
+
+        #[derive(Insertable)]
+        #[table_name="sharebill_associations"]
+        struct NewItem<'a> {
+            slack_name: &'a str,
+            sharebill_account: &'a str,
+        }
+
+        let new_item = NewItem {
+            slack_name: slack_name,
+            sharebill_account: sharebill_account,
+        };
+
+        diesel::insert_or_replace(&new_item)
+            .into(sharebill_associations::table)
+            .execute(&self.db_connection)?;
+
+        Ok(())
+    }
 }
