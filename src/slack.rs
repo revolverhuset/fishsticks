@@ -87,6 +87,126 @@ struct SlackResponse {
     text: String,
 }
 
+use std::sync::Mutex;
+
+fn cmd_restaurants(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackResponse, Error> {
+    let state = state_mutex.lock()?;
+    let restaurants = state.restaurants()?.into_iter()
+        .map(|x| x.name)
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    Ok(SlackResponse {
+        response_type: ResponseType::Ephemeral,
+        text: format!("I know of these restaurants: {}",
+            &restaurants),
+    })
+}
+
+fn cmd_openorder(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackResponse, Error> {
+    let state = state_mutex.lock()?;
+
+    let restaurant = match state.restaurant_by_name(args)? {
+        Some(resturant) => resturant,
+        None => {
+            let restaurants = state.restaurants()?.into_iter()
+                .map(|x| x.name)
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            return Ok(SlackResponse {
+                response_type: ResponseType::Ephemeral,
+                text: format!("Usage: /ffs openorder RESTAURANT\n\
+                    I know of these restaurants: {}",
+                    &restaurants),
+            })
+        },
+    };
+
+    let _new_order = state.create_order(restaurant.id)?;
+
+    Ok(SlackResponse {
+        response_type: ResponseType::InChannel,
+        text: format!(":bell: Now taking orders from the {} menu :memo:",
+            &restaurant.name),
+    })
+}
+
+fn cmd_closeorder(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackResponse, Error> {
+    let state = state_mutex.lock()?;
+
+    state.close_current_order()?;
+
+    Ok(SlackResponse {
+        response_type: ResponseType::InChannel,
+        text: format!("No longer taking orders"),
+    })
+}
+
+fn cmd_search(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackResponse, Error> {
+    let query = state::Query::interpret_string(&args);
+
+    let state = state_mutex.lock()?;
+    let open_order = state.demand_open_order()?;
+
+    match state.query_menu(open_order.restaurant, &query)? {
+        Some(menu_item) => Ok(SlackResponse {
+            response_type: ResponseType::Ephemeral,
+            text: format!(":information_desk_person: That query matches the {} \
+                {} {}. {}", adjective(), noun(), &menu_item.number, &menu_item.name),
+        }),
+        None => Ok(SlackResponse {
+            response_type: ResponseType::Ephemeral,
+            text: format!(":person_frowning: I found no matches for {:?}", &args),
+        }),
+    }
+}
+
+fn cmd_order(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> Result<SlackResponse, Error> {
+    let query = state::Query::interpret_string(&args);
+
+    let state = state_mutex.lock()?;
+    let open_order = state.demand_open_order()?;
+
+    match state.query_menu(open_order.restaurant, &query)? {
+        Some(menu_item) => {
+            state.add_order_item(open_order.id, user_name, menu_item.id)?;
+
+            Ok(SlackResponse {
+                response_type: ResponseType::InChannel,
+                text: format!(":information_desk_person: {} the {} {} {}. {}",
+                    affirm(), adjective(), noun(), &menu_item.number, &menu_item.name),
+            })
+        },
+        None => Ok(SlackResponse {
+            response_type: ResponseType::Ephemeral,
+            text: format!(":person_frowning: I found no matches for {:?}", &args),
+        }),
+    }
+}
+
+fn cmd_summary(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackResponse, Error> {
+    let state = state_mutex.lock()?;
+    let open_order = state.demand_open_order()?;
+    let items = state.items_in_order(open_order.id)?;
+
+    let blob = items.into_iter()
+        .map(|(menu_item, order_item)| {
+            format!("{}: {}. {}",
+                order_item.person_name,
+                menu_item.number,
+                menu_item.name,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    Ok(SlackResponse {
+        response_type: ResponseType::Ephemeral,
+        text: format!(":raising_hand::memo: I've got:\n{}", blob),
+    })
+}
+
 fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
     let hashmap = req.get::<UrlEncodedBody>()?;
 
@@ -122,118 +242,12 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
                     summary\n    See the current order\n\
                     ".to_owned(),
             }),
-        "restaurants" => {
-            let state = state_mutex.lock()?;
-            let restaurants = state.restaurants()?.into_iter()
-                .map(|x| x.name)
-                .collect::<Vec<_>>()
-                .join(", ");
-
-            Ok(SlackResponse {
-                response_type: ResponseType::Ephemeral,
-                text: format!("I know of these restaurants: {}",
-                    &restaurants),
-            })
-        },
-        "openorder" => {
-            let state = state_mutex.lock()?;
-
-            let restaurant = match state.restaurant_by_name(args)? {
-                Some(resturant) => resturant,
-                None => {
-                    let restaurants = state.restaurants()?.into_iter()
-                        .map(|x| x.name)
-                        .collect::<Vec<_>>()
-                        .join(", ");
-
-                    return Ok(SlackResponse {
-                        response_type: ResponseType::Ephemeral,
-                        text: format!("Usage: /ffs openorder RESTAURANT\n\
-                            I know of these restaurants: {}",
-                            &restaurants),
-                    })
-                },
-            };
-
-            let _new_order = state.create_order(restaurant.id)?;
-
-            Ok(SlackResponse {
-                response_type: ResponseType::InChannel,
-                text: format!(":bell: Now taking orders from the {} menu :memo:",
-                    &restaurant.name),
-            })
-        },
-        "closeorder" => {
-            let state = state_mutex.lock()?;
-
-            state.close_current_order()?;
-
-            Ok(SlackResponse {
-                response_type: ResponseType::InChannel,
-                text: format!("No longer taking orders"),
-            })
-        },
-        "search" => {
-            let query = state::Query::interpret_string(&args);
-
-            let state = state_mutex.lock()?;
-            let open_order = state.demand_open_order()?;
-
-            match state.query_menu(open_order.restaurant, &query)? {
-                Some(menu_item) => Ok(SlackResponse {
-                    response_type: ResponseType::Ephemeral,
-                    text: format!(":information_desk_person: That query matches the {} \
-                        {} {}. {}", adjective(), noun(), &menu_item.number, &menu_item.name),
-                }),
-                None => Ok(SlackResponse {
-                    response_type: ResponseType::Ephemeral,
-                    text: format!(":person_frowning: I found no matches for {:?}", &args),
-                }),
-            }
-        },
-        "order" => {
-            let query = state::Query::interpret_string(&args);
-
-            let state = state_mutex.lock()?;
-            let open_order = state.demand_open_order()?;
-
-            match state.query_menu(open_order.restaurant, &query)? {
-                Some(menu_item) => {
-                    state.add_order_item(open_order.id, user_name, menu_item.id)?;
-
-                    Ok(SlackResponse {
-                        response_type: ResponseType::InChannel,
-                        text: format!(":information_desk_person: {} the {} {} {}. {}",
-                            affirm(), adjective(), noun(), &menu_item.number, &menu_item.name),
-                    })
-                },
-                None => Ok(SlackResponse {
-                    response_type: ResponseType::Ephemeral,
-                    text: format!(":person_frowning: I found no matches for {:?}", &args),
-                }),
-            }
-        },
-        "summary" => {
-            let state = state_mutex.lock()?;
-            let open_order = state.demand_open_order()?;
-            let items = state.items_in_order(open_order.id)?;
-
-            let blob = items.into_iter()
-                .map(|(menu_item, order_item)| {
-                    format!("{}: {}. {}",
-                        order_item.person_name,
-                        menu_item.number,
-                        menu_item.name,
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join("\n");
-
-            Ok(SlackResponse {
-                response_type: ResponseType::Ephemeral,
-                text: format!(":raising_hand::memo: I've got:\n{}", blob),
-            })
-        },
+        "restaurants" => cmd_restaurants(&state_mutex, args),
+        "openorder" => cmd_openorder(&state_mutex, args),
+        "closeorder" => cmd_closeorder(&state_mutex, args),
+        "search" => cmd_search(&state_mutex, args),
+        "order" => cmd_order(&state_mutex, args, user_name),
+        "summary" => cmd_summary(&state_mutex, args),
         _ =>
             Ok(SlackResponse {
                 response_type: ResponseType::Ephemeral,
