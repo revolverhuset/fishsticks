@@ -157,7 +157,9 @@ fn slack_core(req: &mut Request) -> Result<SlackResponse, Error> {
             let adjective = rand::thread_rng().choose(&adjectives).unwrap();
             let noun = rand::thread_rng().choose(&nouns).unwrap();
 
-            match state.query_open_menu(&query)? {
+            let open_order = state.demand_open_order()?;
+
+            match state.query_menu(open_order.restaurant, &query)? {
                 Some(menu_item) => Ok(SlackResponse {
                     response_type: ResponseType::Ephemeral,
                     text: format!(":information_desk_person: That query matches the {} \

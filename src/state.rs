@@ -107,6 +107,10 @@ impl State {
             .pop())
     }
 
+    pub fn demand_open_order(&self) -> Result<models::Order, Error> {
+        self.current_open_order()?.ok_or(Error::NoOpenOrder)
+    }
+
     pub fn create_order(&self, restaurant_id: i32) -> Result<(), Error> {
         use schema::orders;
 
@@ -142,7 +146,7 @@ impl State {
         use schema::orders::dsl::*;
 
         self.db_connection.transaction(|| {
-            let current = self.current_open_order()?.ok_or(Error::NoOpenOrder)?;
+            let current = self.demand_open_order()?;
 
             if current.closed.is_some() {
                 return Err(Error::OrderAlreadyClosed(current));
@@ -157,25 +161,18 @@ impl State {
         Ok(())
     }
 
-    pub fn query_open_menu(&self, query: &Query) -> Result<Option<models::MenuItem>, Error> {
+    pub fn query_menu(&self, restaurant_id: i32, query: &Query) -> Result<Option<models::MenuItem>, Error> {
         use schema::menu_items::dsl::*;
 
-        Ok(self.db_connection.transaction(|| -> Result<_, Error> {
-            let current = self.current_open_order()?.ok_or(Error::NoOpenOrder)?;
-
-            let menu_item =
-                match *query {
-                    Query::ExactInteger(integer) =>
-                        menu_items.filter(id.eq(integer)).into_boxed(),
-                    Query::FuzzyString(string) =>
-                        menu_items.filter(name.eq(string)).into_boxed(),
-                }
-                .filter(restaurant.eq(current.restaurant))
-                .limit(1)
-                .load::<models::MenuItem>(&self.db_connection)?
-                .pop();
-
-            Ok(menu_item)
-        })?)
+        Ok(match *query {
+            Query::ExactInteger(integer) =>
+                menu_items.filter(id.eq(integer)).into_boxed(),
+            Query::FuzzyString(string) =>
+                menu_items.filter(name.eq(string)).into_boxed(),
+        }
+            .filter(restaurant.eq(restaurant_id))
+            .limit(1)
+            .load::<models::MenuItem>(&self.db_connection)?
+            .pop())
     }
 }
