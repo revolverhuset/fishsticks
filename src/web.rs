@@ -101,7 +101,7 @@ fn menu(req: &mut Request) -> IronResult<Response> {
     Ok(Response::with((status::Ok, Template::new("menu", data))))
 }
 
-pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
+pub fn run(state: state::State, bind: &str, base_url: String) -> Result<(), Error> {
     let mut hbse = HandlebarsEngine::new();
     hbse.add(Box::new(DirectorySource::new("./templates/", ".hbs")));
     hbse.reload()?;
@@ -111,8 +111,7 @@ pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
     router.get("/restaurant/:id", restaurant, "restaurant");
     router.post("/restaurant/:id", ingest, "ingest");
     router.get("/menu/:id", menu, "menu");
-
-    router.post("/slack", slack::slack, "slack");
+    router.post("/slack", move |req: &mut Request| slack::slack(&base_url, req), "slack");
 
     let mut chain = Chain::new(router);
     chain.link_before(StateContainer(Arc::new(Mutex::new(state))));

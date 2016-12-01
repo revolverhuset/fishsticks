@@ -37,13 +37,18 @@ impl DbConfig {
 pub struct WebConfig {
     #[serde(default="default_bind")]
     pub bind: String,
+
+    #[serde(default="default_base")]
+    pub base: String,
 }
 fn default_bind() -> String { "localhost:3000".to_owned() }
+fn default_base() -> String { "http://localhost:3000/".to_owned() }
 
 impl WebConfig {
     fn new() -> WebConfig {
         WebConfig {
-            bind: default_bind()
+            bind: default_bind(),
+            base: default_base(),
         }
     }
 }
@@ -66,6 +71,7 @@ impl Config {
             },
             web: WebConfig {
                 bind: default_bind(),
+                base: default_base(),
             },
         }
     }
@@ -129,6 +135,7 @@ pub fn read_config() -> ConfigResult {
         },
         web: WebConfig {
             bind: matches.opt_str("bind").unwrap_or(cfg.web.bind),
+            base: cfg.web.base,
         },
     })
 }
