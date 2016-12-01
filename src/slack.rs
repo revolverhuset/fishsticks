@@ -124,7 +124,9 @@ fn cmd_openorder(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackR
         },
     };
 
-    let _new_order = state.create_order(restaurant.id)?;
+    let menu = state.current_menu_for_restaurant(restaurant.id)?;
+
+    let _new_order = state.create_order(menu.id)?;
 
     Ok(SlackResponse {
         response_type: ResponseType::InChannel,

@@ -17,6 +17,7 @@ quick_error! {
         OrderAlreadyClosed(order: models::Order) { }
         CouldntCreateTransaction(err: diesel::result::Error) { }
         NoOpenOrder
+        NotFound
     }
 }
 
@@ -95,7 +96,20 @@ impl State {
 
         Ok(menus
             .filter(restaurant.eq(restaurant_id))
+            .order(imported.desc())
             .load::<models::Menu>(&self.db_connection)?
+        )
+    }
+
+    pub fn current_menu_for_restaurant(&self, restaurant_id: i32) -> Result<models::Menu, Error> {
+        use schema::menus::dsl::*;
+
+        Ok(menus
+            .filter(restaurant.eq(restaurant_id))
+            .order(imported.desc())
+            .limit(1)
+            .load::<models::Menu>(&self.db_connection)?
+            .pop().ok_or(Error::NotFound)?
         )
     }
 
