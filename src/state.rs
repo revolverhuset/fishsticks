@@ -17,7 +17,6 @@ quick_error! {
         OrderAlreadyClosed(order: models::Order) { }
         CouldntCreateTransaction(err: diesel::result::Error) { }
         NoOpenOrder
-        NoMenusForRestaurant(restaurant_id: i32)
     }
 }
 
@@ -72,6 +71,15 @@ impl State {
         Ok(restaurants.load::<models::Restaurant>(&self.db_connection)?)
     }
 
+    pub fn restaurant(&self, restaurant_id: i32) -> Result<Option<models::Restaurant>, Error> {
+        use schema::restaurants::dsl::*;
+
+        Ok(restaurants
+            .find(restaurant_id)
+            .load::<models::Restaurant>(&self.db_connection)?
+            .pop())
+    }
+
     pub fn restaurant_by_name(&self, query_name: &str) -> Result<Option<models::Restaurant>, Error> {
         use schema::restaurants::dsl::*;
 
@@ -82,19 +90,20 @@ impl State {
             .pop())
     }
 
-    pub fn menu(&self, restaurant_id: i32) -> Result<Vec<models::MenuItem>, Error> {
-        use schema::{menus, menu_items};
+    pub fn menus_for_restaurant(&self, restaurant_id: i32) -> Result<Vec<models::Menu>, Error> {
+        use schema::menus::dsl::*;
 
-        let menu_id = menus::table
-            .filter(menus::dsl::restaurant.eq(restaurant_id))
-            .order(menus::dsl::imported.desc())
-            .limit(1)
+        Ok(menus
+            .filter(restaurant.eq(restaurant_id))
             .load::<models::Menu>(&self.db_connection)?
-            .pop().ok_or(Error::NoMenusForRestaurant(restaurant_id))?
-            .id;
+        )
+    }
 
-        Ok(menu_items::table
-            .filter(menu_items::dsl::menu.eq(menu_id))
+    pub fn menu(&self, menu_id: i32) -> Result<Vec<models::MenuItem>, Error> {
+        use schema::menu_items::dsl::*;
+
+        Ok(menu_items
+            .filter(menu.eq(menu_id))
             .load::<models::MenuItem>(&self.db_connection)?
         )
     }

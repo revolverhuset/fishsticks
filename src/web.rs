@@ -48,21 +48,23 @@ fn index(req: &mut Request) -> IronResult<Response> {
     Ok(Response::with((status::Ok, Template::new("index", data))))
 }
 
-fn menu(req: &mut Request) -> IronResult<Response> {
+fn restaurant(req: &mut Request) -> IronResult<Response> {
     use self::serde_json::value::{self, Value};
     let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
 
-    let menu_id = req.extensions.get::<Router>().unwrap()
+    let restaurant_id = req.extensions.get::<Router>().unwrap()
         .find("id").unwrap()
         .parse::<i32>().unwrap();
 
     let mut data = BTreeMap::<String, Value>::new();
 
-    let menu = state.menu(menu_id).unwrap();
+    let restaurant = state.restaurant(restaurant_id).unwrap();
+    let menus = state.menus_for_restaurant(restaurant_id).unwrap();
 
-    data.insert("menu".to_string(), value::to_value(&menu));
+    data.insert("restaurant".to_string(), value::to_value(&restaurant));
+    data.insert("menus".to_string(), value::to_value(&menus));
 
-    Ok(Response::with((status::Ok, Template::new("menu", data))))
+    Ok(Response::with((status::Ok, Template::new("restaurant", data))))
 }
 
 fn ingest(req: &mut Request) -> IronResult<Response> {
@@ -82,6 +84,23 @@ fn ingest(req: &mut Request) -> IronResult<Response> {
     }
 }
 
+fn menu(req: &mut Request) -> IronResult<Response> {
+    use self::serde_json::value::{self, Value};
+    let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
+
+    let menu_id = req.extensions.get::<Router>().unwrap()
+        .find("id").unwrap()
+        .parse::<i32>().unwrap();
+
+    let mut data = BTreeMap::<String, Value>::new();
+
+    let menu = state.menu(menu_id).unwrap();
+
+    data.insert("menu".to_string(), value::to_value(&menu));
+
+    Ok(Response::with((status::Ok, Template::new("menu", data))))
+}
+
 pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
     let mut hbse = HandlebarsEngine::new();
     hbse.add(Box::new(DirectorySource::new("./templates/", ".hbs")));
@@ -89,6 +108,7 @@ pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
 
     let mut router = Router::new();
     router.get("/", index, "index");
+    router.get("/restaurant/:id", restaurant, "restaurant");
     router.post("/restaurant/:id", ingest, "ingest");
     router.get("/menu/:id", menu, "menu");
 

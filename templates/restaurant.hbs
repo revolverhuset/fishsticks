@@ -1,0 +1,9 @@
+{{> header }}
+<h2>Restaurant {{restaurant.name}}</h2>
+<h3>Menus</h3>
+<ul>
+    {{#each menus}}
+    <li><a href="../menu/{{this.id}}">Menu from {{this.imported}}</a></li>
+    {{/each}}
+</ul>
+{{> footer }}
