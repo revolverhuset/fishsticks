@@ -36,14 +36,15 @@ struct NewMenuItem<'a> {
 
 pub fn restaurant(connection: &SqliteConnection, name: &str) -> Result<i32, Error> {
     use schema::restaurants;
-    let new_restaurant = NewRestaurant {
-        name: name
-    };
-    diesel::insert(&new_restaurant).into(restaurants::table)
+
+    let new_restaurant = NewRestaurant { name: name };
+
+    diesel::insert(&new_restaurant)
+        .into(restaurants::table)
         .execute(connection)?;
 
-    let restaurant_id = restaurants::dsl::restaurants
-        .filter(restaurants::dsl::name.eq(name))
+    let restaurant_id = restaurants::table
+        .filter(restaurants::name.eq(name))
         .load::<Restaurant>(connection)?
         [0].id;
 
@@ -58,8 +59,8 @@ pub fn menu(connection: &SqliteConnection, restaurant_id: i32, menu: &takedown::
         .execute(connection)?;
 
     let menu_id = menus::table
-        .filter(menus::dsl::restaurant.eq(restaurant_id))
-        .order(menus::dsl::imported.desc())
+        .filter(menus::restaurant.eq(restaurant_id))
+        .order(menus::imported.desc())
         .limit(1)
         .load::<Menu>(connection)?
         .pop().unwrap()
