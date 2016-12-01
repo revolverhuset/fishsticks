@@ -17,6 +17,7 @@ quick_error! {
         OrderAlreadyClosed(order: models::Order) { }
         CouldntCreateTransaction(err: diesel::result::Error) { }
         NoOpenOrder
+        NoMenusForRestaurant(restaurant_id: i32)
     }
 }
 
@@ -82,17 +83,25 @@ impl State {
     }
 
     pub fn menu(&self, restaurant_id: i32) -> Result<Vec<models::MenuItem>, Error> {
-        use schema::menu_items::dsl::*;
+        use schema::{menus, menu_items};
 
-        Ok(menu_items
-            .filter(restaurant.eq(restaurant_id))
+        let menu_id = menus::table
+            .filter(menus::dsl::restaurant.eq(restaurant_id))
+            .order(menus::dsl::imported.desc())
+            .limit(1)
+            .load::<models::Menu>(&self.db_connection)?
+            .pop().ok_or(Error::NoMenusForRestaurant(restaurant_id))?
+            .id;
+
+        Ok(menu_items::table
+            .filter(menu_items::dsl::menu.eq(menu_id))
             .load::<models::MenuItem>(&self.db_connection)?
         )
     }
 
-    pub fn ingest_menu(&self, restaurant: &str, menu: &takedown::Menu) -> Result<(), Error> {
+    pub fn ingest_menu(&self, restaurant_id: i32, menu: &takedown::Menu) -> Result<(), Error> {
         self.db_connection.transaction(|| {
-            ingest::restaurant(&self.db_connection, restaurant, menu)
+            ingest::menu(&self.db_connection, restaurant_id, menu)
         })?;
         Ok(())
     }
@@ -111,13 +120,13 @@ impl State {
         self.current_open_order()?.ok_or(Error::NoOpenOrder)
     }
 
-    pub fn create_order(&self, restaurant_id: i32) -> Result<(), Error> {
+    pub fn create_order(&self, menu_id: i32) -> Result<(), Error> {
         use schema::orders;
 
         #[derive(Insertable)]
         #[table_name="orders"]
         struct NewOrder {
-            pub restaurant: i32,
+            pub menu: i32,
             pub overhead_in_cents: i32,
             pub opened: i32,
         }
@@ -128,7 +137,7 @@ impl State {
             }
 
             let new_order = NewOrder {
-                restaurant: restaurant_id,
+                menu: menu_id,
                 overhead_in_cents: 0,
                 opened: timestamp(),
             };
@@ -161,7 +170,7 @@ impl State {
         Ok(())
     }
 
-    pub fn query_menu(&self, restaurant_id: i32, query: &Query) -> Result<Option<models::MenuItem>, Error> {
+    pub fn query_menu(&self, menu_id: i32, query: &Query) -> Result<Option<models::MenuItem>, Error> {
         use schema::menu_items::dsl::*;
 
         Ok(match *query {
@@ -172,7 +181,7 @@ impl State {
                     .filter(name.eq(string))
                     .into_boxed(),
         }
-            .filter(restaurant.eq(restaurant_id))
+            .filter(menu.eq(menu_id))
             .limit(1)
             .load::<models::MenuItem>(&self.db_connection)?
             .pop())

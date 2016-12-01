@@ -52,30 +52,28 @@ fn menu(req: &mut Request) -> IronResult<Response> {
     use self::serde_json::value::{self, Value};
     let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
 
-    let id = req.extensions.get::<Router>().unwrap()
+    let menu_id = req.extensions.get::<Router>().unwrap()
         .find("id").unwrap()
         .parse::<i32>().unwrap();
 
     let mut data = BTreeMap::<String, Value>::new();
 
-    let menu = state.menu(id).unwrap();
+    let menu = state.menu(menu_id).unwrap();
 
     data.insert("menu".to_string(), value::to_value(&menu));
 
     Ok(Response::with((status::Ok, Template::new("menu", data))))
 }
 
-#[derive(Deserialize, Debug, Clone)]
-struct NewRestaurant {
-    restaurant: String,
-    menu: takedown::Menu,
-}
-
 fn ingest(req: &mut Request) -> IronResult<Response> {
-    match req.get::<bodyparser::Struct<NewRestaurant>>() {
-        Ok(Some(new_restaurant)) => {
+    let restaurant_id = req.extensions.get::<Router>().unwrap()
+        .find("id").unwrap()
+        .parse::<i32>().unwrap();
+
+    match req.get::<bodyparser::Struct<takedown::Menu>>() {
+        Ok(Some(new_menu)) => {
             let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
-            state.ingest_menu(&new_restaurant.restaurant, &new_restaurant.menu).unwrap();
+            state.ingest_menu(restaurant_id, &new_menu).unwrap();
 
             Ok(Response::with(status::Ok))
         }
@@ -91,8 +89,8 @@ pub fn run(state: state::State, bind: &str) -> Result<(), Error> {
 
     let mut router = Router::new();
     router.get("/", index, "index");
-    router.post("/ingest", ingest, "ingest");
-    router.get("/restaurant/:id", menu, "menu");
+    router.post("/restaurant/:id", ingest, "ingest");
+    router.get("/menu/:id", menu, "menu");
 
     router.post("/slack", slack::slack, "slack");
 

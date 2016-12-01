@@ -6,11 +6,18 @@ pub struct Restaurant {
     pub name: String,
 }
 
+#[derive(Debug, Queryable, Serialize)]
+pub struct Menu {
+    pub id: i32,
+    pub restaurant: i32,
+    pub imported: i32,
+}
+
 #[derive(Debug, Queryable, Serialize, Identifiable, Associations)]
 #[has_many(order_items, foreign_key="menu_item")]
 pub struct MenuItem {
     pub id: i32,
-    pub restaurant: i32,
+    pub menu: i32,
     pub number: i32,
     pub name: String,
     pub price_in_cents: i32,
@@ -19,7 +26,7 @@ pub struct MenuItem {
 #[derive(Debug, Queryable, Serialize)]
 pub struct Order {
     pub id: i32,
-    pub restaurant: i32,
+    pub menu: i32,
     pub overhead_in_cents: i32,
     pub opened: i32,
     pub closed: Option<i32>,
