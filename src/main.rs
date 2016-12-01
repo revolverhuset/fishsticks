@@ -44,7 +44,7 @@ fn main() {
     let connection = connect_database(&config.database.connection_string, config.database.run_migrations);
     let state = state::State::new(connection);
 
-    web::run(state, &config.web.bind, config.web.base.into()).unwrap();
+    web::run(state, &config.web.bind, config.web.base, config.web.slack_token).unwrap();
 }
 
 #[cfg(test)]

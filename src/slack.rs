@@ -59,6 +59,7 @@ quick_error! {
         UrlDecodingError(err: urlencoded::UrlDecodingError) { from() }
         PoisonError
         InputError
+        InvalidSlackToken
     }
 }
 
@@ -255,10 +256,21 @@ fn cmd_associate(state_mutex: &Mutex<state::State>, args: &str, user_name: &str)
     }
 }
 
-fn slack_core(base_url: &str, req: &mut Request) -> Result<SlackResponse, Error> {
+fn slack_core(base_url: &str, maybe_slack_token: &Option<&str>, req: &mut Request) -> Result<SlackResponse, Error> {
     let hashmap = req.get::<UrlEncodedBody>()?;
 
     println!("Parsed GET request query string:\n {:?}", hashmap);
+
+    if let &Some(slack_token) = maybe_slack_token {
+        let given_token =
+            hashmap.get("token")
+                .and_then(|tokens| tokens.get(0))
+                .map(String::as_ref);
+
+        if given_token != Some(slack_token) {
+            return Err(Error::InvalidSlackToken);
+        }
+    }
 
     if hashmap.contains_key("sslcheck") {
         return Ok(SlackResponse {
@@ -311,8 +323,8 @@ fn slack_core(base_url: &str, req: &mut Request) -> Result<SlackResponse, Error>
     }
 }
 
-pub fn slack(base_url: &str, req: &mut Request) -> IronResult<Response> {
-    match slack_core(base_url, req) {
+pub fn slack(base_url: &str, slack_token: &Option<&str>, req: &mut Request) -> IronResult<Response> {
+    match slack_core(base_url, slack_token, req) {
         Ok(response) => Ok(Response::with((
             status::Ok,
             serde_json::to_string(&response).unwrap(),

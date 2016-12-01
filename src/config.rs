@@ -40,6 +40,8 @@ pub struct WebConfig {
 
     #[serde(default="default_base")]
     pub base: String,
+
+    pub slack_token: Option<String>,
 }
 fn default_bind() -> String { "localhost:3000".to_owned() }
 fn default_base() -> String { "http://localhost:3000/".to_owned() }
@@ -49,6 +51,7 @@ impl WebConfig {
         WebConfig {
             bind: default_bind(),
             base: default_base(),
+            slack_token: None,
         }
     }
 }
@@ -72,6 +75,7 @@ impl Config {
             web: WebConfig {
                 bind: default_bind(),
                 base: default_base(),
+                slack_token: None,
             },
         }
     }
@@ -136,6 +140,7 @@ pub fn read_config() -> ConfigResult {
         web: WebConfig {
             bind: matches.opt_str("bind").unwrap_or(cfg.web.bind),
             base: cfg.web.base,
+            slack_token: cfg.web.slack_token,
         },
     })
 }
