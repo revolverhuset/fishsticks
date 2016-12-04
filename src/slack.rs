@@ -256,7 +256,7 @@ fn cmd_associate(state_mutex: &Mutex<state::State>, args: &str, user_name: &str)
     }
 }
 
-fn slack_core(base_url: &str, maybe_slack_token: &Option<&str>, req: &mut Request) -> Result<SlackResponse, Error> {
+fn slack_core(maybe_slack_token: &Option<&str>, req: &mut Request) -> Result<SlackResponse, Error> {
     let hashmap = req.get::<UrlEncodedBody>()?;
 
     println!("Parsed GET request query string:\n {:?}", hashmap);
@@ -281,6 +281,7 @@ fn slack_core(base_url: &str, maybe_slack_token: &Option<&str>, req: &mut Reques
     }
 
     let ref state_mutex = req.extensions.get::<web::StateContainer>().unwrap().0;
+    let ref env = req.extensions.get::<web::EnvContainer>().unwrap().0;
 
     let text = &hashmap.get("text").unwrap()[0];
     let mut split = text.splitn(2, ' ');
@@ -308,7 +309,7 @@ fn slack_core(base_url: &str, maybe_slack_token: &Option<&str>, req: &mut Reques
             }),
         "associate" => cmd_associate(&state_mutex, args, user_name),
         "closeorder" => cmd_closeorder(&state_mutex, args),
-        "openorder" => cmd_openorder(&state_mutex, args, base_url),
+        "openorder" => cmd_openorder(&state_mutex, args, &env.base_url),
         "order" => cmd_order(&state_mutex, args, user_name),
         "restaurants" => cmd_restaurants(&state_mutex, args),
         "search" => cmd_search(&state_mutex, args),
@@ -323,8 +324,8 @@ fn slack_core(base_url: &str, maybe_slack_token: &Option<&str>, req: &mut Reques
     }
 }
 
-pub fn slack(base_url: &str, slack_token: &Option<&str>, req: &mut Request) -> IronResult<Response> {
-    match slack_core(base_url, slack_token, req) {
+pub fn slack(slack_token: &Option<&str>, req: &mut Request) -> IronResult<Response> {
+    match slack_core(slack_token, req) {
         Ok(response) => Ok(Response::with((
             status::Ok,
             serde_json::to_string(&response).unwrap(),

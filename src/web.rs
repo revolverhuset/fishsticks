@@ -155,8 +155,6 @@ fn menu(req: &mut Request) -> IronResult<Response> {
 }
 
 pub fn run(state: state::State, bind: &str, base_url: String, slack_token: Option<String>) -> Result<(), Error> {
-    let base_url2 = base_url.clone();
-
     let mut hbse = HandlebarsEngine::new();
     hbse.add(Box::new(DirectorySource::new("./templates/", ".hbs")));
     hbse.reload()?;
@@ -169,13 +167,13 @@ pub fn run(state: state::State, bind: &str, base_url: String, slack_token: Optio
     router.get("/menu/:id", menu, "menu");
     router.post("/slack",
         move |req: &mut Request| {
-            slack::slack(&base_url, &slack_token.as_ref().map(String::as_ref), req)
+            slack::slack(&slack_token.as_ref().map(String::as_ref), req)
         },
         "slack");
 
     let mut chain = Chain::new(router);
     chain.link_before(StateContainer(Arc::new(Mutex::new(state))));
-    chain.link_before(EnvContainer(Arc::new(Env{ base_url: base_url2 })));
+    chain.link_before(EnvContainer(Arc::new(Env{ base_url: base_url })));
     chain.link_after(hbse);
 
     let listening = Iron::new(chain).http(bind).map_err(|_| Error::Bummer)?;
