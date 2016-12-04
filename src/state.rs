@@ -66,6 +66,29 @@ impl State {
         }
     }
 
+    pub fn create_restaurant(&self, name: &str) -> Result<i32, Error> {
+        use schema::restaurants;
+
+        #[derive(Insertable)]
+        #[table_name="restaurants"]
+        struct NewRestaurant<'a> {
+            name: &'a str
+        }
+
+        let new_restaurant = NewRestaurant { name: name };
+
+        diesel::insert(&new_restaurant)
+            .into(restaurants::table)
+            .execute(&self.db_connection)?;
+
+        let restaurant_id = restaurants::table
+            .filter(restaurants::name.eq(name))
+            .load::<models::Restaurant>(&self.db_connection)?
+            [0].id;
+
+        Ok(restaurant_id)
+    }
+
     pub fn restaurants(&self) -> Result<Vec<models::Restaurant>, Error> {
         use schema::restaurants::dsl::*;
 

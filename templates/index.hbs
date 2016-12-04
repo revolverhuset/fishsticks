@@ -5,4 +5,8 @@
     <li><a href="restaurant/{{this.id}}">{{this.name}}</a></li>
     {{/each}}
 </ul>
+<form method=POST action=restaurant/>
+    <input name=name placeholder=restaurant required autocomplete=off />
+    <button type=submit>Add restaurant</button>
+</form>
 {{> footer }}

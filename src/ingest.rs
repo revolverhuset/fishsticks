@@ -1,7 +1,7 @@
 use diesel;
 use diesel::sqlite::SqliteConnection;
-use schema::{restaurants, menus, menu_items};
-use models::{Menu, Restaurant};
+use schema::{menus, menu_items};
+use models::Menu;
 use takedown;
 
 use diesel::prelude::*;
@@ -11,12 +11,6 @@ quick_error! {
     pub enum Error {
         Diesel(err: diesel::result::Error) { from() }
     }
-}
-
-#[derive(Insertable)]
-#[table_name="restaurants"]
-struct NewRestaurant<'a> {
-    name: &'a str
 }
 
 #[derive(Insertable)]
@@ -32,23 +26,6 @@ struct NewMenuItem<'a> {
     id: i32,
     name: &'a str,
     price_in_cents: i32
-}
-
-pub fn restaurant(connection: &SqliteConnection, name: &str) -> Result<i32, Error> {
-    use schema::restaurants;
-
-    let new_restaurant = NewRestaurant { name: name };
-
-    diesel::insert(&new_restaurant)
-        .into(restaurants::table)
-        .execute(connection)?;
-
-    let restaurant_id = restaurants::table
-        .filter(restaurants::name.eq(name))
-        .load::<Restaurant>(connection)?
-        [0].id;
-
-    Ok(restaurant_id)
 }
 
 pub fn menu(connection: &SqliteConnection, restaurant_id: i32, menu: &takedown::Menu) -> Result<i32, Error> {
