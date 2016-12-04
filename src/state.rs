@@ -72,6 +72,12 @@ impl State {
         Ok(restaurants.load::<models::Restaurant>(&self.db_connection)?)
     }
 
+    pub fn ingest_restaurant(&self, name: &str) -> Result<i32, Error> {
+        Ok(self.db_connection.transaction(|| {
+            ingest::restaurant(&self.db_connection, name)
+        })?)
+    }
+
     pub fn restaurant(&self, restaurant_id: i32) -> Result<Option<models::Restaurant>, Error> {
         use schema::restaurants::dsl::*;
 

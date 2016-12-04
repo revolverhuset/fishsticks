@@ -13,6 +13,7 @@ use takedown;
 use self::handlebars_iron::{Template, HandlebarsEngine, DirectorySource};
 use self::iron::prelude::*;
 use self::iron::{status, typemap, BeforeMiddleware};
+use self::iron::modifiers::RedirectRaw;
 use self::router::Router;
 
 // TODO Understand error handling with Iron
@@ -47,6 +48,32 @@ fn index(req: &mut Request) -> IronResult<Response> {
 
     Ok(Response::with((status::Ok, Template::new("index", data))))
 }
+
+fn add_restaurant(req: &mut Request) -> IronResult<Response> {
+    // TODO: Find (or create) a form data parser
+    match req.get::<bodyparser::Raw>() {
+        Ok(Some(raw_body)) => {
+            let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
+
+            let header = "new_restaurant_name=";
+            if raw_body.starts_with(header) {
+                let name = &raw_body[header.len()..];
+
+                match state.ingest_restaurant(name) {
+                    Ok(new_id) => {
+                        Ok(Response::with((status::Found, RedirectRaw(format!("{}", new_id)))))
+                    },
+                    Err(err) => Ok(Response::with((status::InternalServerError, format!("{:?}", err)))),
+                }
+            } else {
+                Ok(Response::with((status::BadRequest, "Malformed body")))
+            }
+        }
+        Ok(None) => Ok(Response::with((status::BadRequest, "Missing body"))),
+        Err(err) => Ok(Response::with((status::BadRequest, format!("{:?}", err)))),
+    }
+}
+
 
 fn restaurant(req: &mut Request) -> IronResult<Response> {
     use self::serde_json::value::{self, Value};
@@ -108,6 +135,7 @@ pub fn run(state: state::State, bind: &str, base_url: String, slack_token: Optio
 
     let mut router = Router::new();
     router.get("/", index, "index");
+    router.post("/restaurant/", add_restaurant, "add_restaurant");
     router.get("/restaurant/:id", restaurant, "restaurant");
     router.post("/restaurant/:id", ingest, "ingest");
     router.get("/menu/:id", menu, "menu");

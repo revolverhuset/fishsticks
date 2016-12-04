@@ -5,4 +5,10 @@
     <li><a href="restaurant/{{this.id}}">{{this.name}}</a></li>
     {{/each}}
 </ul>
+<form method="post" action="restaurant/">
+<h3>Add new restaurant</h3>
+<label for='new_restaurant_name'>Name</label>
+<input name='new_restaurant_name'>
+<input type="submit" value="Add restaurant">
+</form>
 {{> footer }}
