@@ -4,6 +4,7 @@ extern crate regex;
 use std::str::FromStr;
 use std::fmt;
 
+use self::num::Zero;
 use self::regex::Regex;
 
 quick_error! {
@@ -32,7 +33,7 @@ impl FromStr for Rational {
         match MIXED_NUMBER.captures(number) {
             Some(groups) => {
                 // The parsing below must succeed because of the regex match, unwrap is ok.
-                let mut result = "0".parse::<BR>().unwrap();
+                let mut result = BR::zero();
                 if let Some(x) = groups.at(3) { result = result + x.parse::<BR>().unwrap(); }
                 if let Some(x) = groups.at(5) { result = result + x.parse::<BR>().unwrap(); }
                 if let Some(x) = groups.at(6) { result = result + x.parse::<BR>().unwrap(); }
@@ -47,7 +48,16 @@ impl FromStr for Rational {
 
 impl fmt::Display for Rational {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
+        let x = &self.0;
+        let whole = x.to_integer();
+        let numer = x.numer() - x.denom() * &whole;
+        let denom = x.denom();
+
+        if whole == num::BigInt::zero() {
+            write!(f, "{}/{}", &numer, &denom)
+        } else {
+            write!(f, "{} {}/{}", &whole, &numer, &denom)
+        }
     }
 }
 
@@ -67,5 +77,12 @@ mod test {
         let r = "1/2".parse::<Rational>().unwrap();
         let actual = format!("{}", &r);
         assert_eq!("1/2", actual);
+    }
+
+    #[test]
+    fn it_formats_mixed_number() {
+        let r = "1 1/2".parse::<Rational>().unwrap();
+        let actual = format!("{}", &r);
+        assert_eq!("1 1/2", actual);
     }
 }
