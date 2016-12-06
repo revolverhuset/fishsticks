@@ -1,8 +1,9 @@
 extern crate num;
 extern crate regex;
 
-use std::str::FromStr;
 use std::fmt;
+use std::ops;
+use std::str::FromStr;
 
 use self::num::Zero;
 use self::regex::Regex;
@@ -14,7 +15,7 @@ quick_error! {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq)]
 pub struct Rational(num::BigRational);
 
 lazy_static! {
@@ -61,6 +62,40 @@ impl fmt::Display for Rational {
     }
 }
 
+impl PartialEq for Rational {
+    fn eq(&self, other: &Rational) -> bool {
+       self.0 == other.0
+    }
+}
+
+impl ops::Add<Rational> for Rational {
+    type Output = Rational;
+    fn add(self, other: Rational) -> Rational {
+        Rational(self.0 + other.0)
+    }
+}
+
+impl<'a> ops::Add<Rational> for &'a Rational {
+    type Output = Rational;
+    fn add(self, other: Rational) -> Rational {
+        Rational(&self.0 + other.0)
+    }
+}
+
+impl<'a> ops::Add<&'a Rational> for Rational {
+    type Output = Rational;
+    fn add(self, other: &Rational) -> Rational {
+        Rational(self.0 + &other.0)
+    }
+}
+
+impl<'a, 'b> ops::Add<&'a Rational> for &'b Rational {
+    type Output = Rational;
+    fn add(self, other: &Rational) -> Rational {
+        Rational(&self.0 + &other.0)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -84,5 +119,43 @@ mod test {
         let r = "1 1/2".parse::<Rational>().unwrap();
         let actual = format!("{}", &r);
         assert_eq!("1 1/2", actual);
+    }
+
+    #[test]
+    fn eq() {
+        let a = "1/2".parse::<Rational>().unwrap();
+        let b = "1/2".parse::<Rational>().unwrap();
+        assert_eq!(a, b);
+    }
+
+    fn fabricate_to_add() -> (Rational, Rational) {
+        (
+            "1/2".parse::<Rational>().unwrap(),
+            "1/3".parse::<Rational>().unwrap(),
+        )
+    }
+
+    #[test]
+    fn add_m_m() {
+        let (a, b) = fabricate_to_add();
+        assert_eq!("5/6".parse::<Rational>().unwrap(), a + b);
+    }
+
+    #[test]
+    fn add_m_b() {
+        let (a, b) = fabricate_to_add();
+        assert_eq!("5/6".parse::<Rational>().unwrap(), a + &b);
+    }
+
+    #[test]
+    fn add_b_m() {
+        let (a, b) = fabricate_to_add();
+        assert_eq!("5/6".parse::<Rational>().unwrap(), &a + b);
+    }
+
+    #[test]
+    fn add_b_b() {
+        let (a, b) = fabricate_to_add();
+        assert_eq!("5/6".parse::<Rational>().unwrap(), &a + &b);
     }
 }
