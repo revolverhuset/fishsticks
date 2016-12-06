@@ -1,5 +1,4 @@
 extern crate iron;
-extern crate rand;
 extern crate serde;
 extern crate serde_json;
 extern crate urlencoded;
@@ -7,50 +6,13 @@ extern crate urlencoded;
 use state;
 use std;
 use web;
+use words::*;
 
 use self::iron::prelude::*;
 use self::iron::status;
 use self::iron::headers::ContentType;
 use self::iron::modifiers::Header;
 use self::urlencoded::UrlEncodedBody;
-
-fn adjective() -> &'static str {
-    const ADJECTIVES: &'static [&'static str] = &[
-        "delicious",
-        "tasty",
-        "yummy",
-        "edible",
-        "awesome",
-        "sick",
-    ];
-
-    use self::rand::Rng;
-    rand::thread_rng().choose(ADJECTIVES).unwrap()
-}
-
-fn noun() -> &'static str {
-    const NOUNS: &'static [&'static str] = &[
-        "treat",
-        "edible",
-        "food",
-        "fishstick",
-    ];
-
-    use self::rand::Rng;
-    rand::thread_rng().choose(NOUNS).unwrap()
-}
-
-fn affirm() -> &'static str {
-    const STRS: &'static [&'static str] = &[
-        "I'll get you",
-        "You're getting",
-        "I'mma get you",
-        "I'm taking that down as",
-    ];
-
-    use self::rand::Rng;
-    rand::thread_rng().choose(STRS).unwrap()
-}
 
 quick_error! {
     #[derive(Debug)]

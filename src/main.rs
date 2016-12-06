@@ -14,6 +14,7 @@ mod slack;
 mod state;
 mod takedown;
 mod web;
+mod words;
 
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
