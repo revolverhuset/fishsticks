@@ -178,11 +178,10 @@ fn cmd_summary(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackRe
     while let Some(&&(_, ref order_item)) = items_iter.peek() {
         write!(&mut buf, "{}: ", order_item.person_name).unwrap();
 
-        for (index, &(ref menu_item, _)) in
-            items_iter
-                .take_while_ref(|&&(_, ref x)| x.person_name == order_item.person_name)
-                .enumerate()
-        {
+        let all_orders_for_person = items_iter
+            .take_while_ref(|&&(_, ref x)| x.person_name == order_item.person_name);
+
+        for (index, &(ref menu_item, _)) in all_orders_for_person.enumerate() {
             if index != 0 {
                 write!(&mut buf, ", ").unwrap();
             }
