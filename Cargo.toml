@@ -15,11 +15,8 @@ version = "^0.8.1"
 bodyparser = "0.4.1"
 getopts = "^0.2.14"
 iron = "^0.4.0"
-lazy_static = "0.2.2"
-num = "0.1.36"
 quick-error = "^1.1.0"
 rand = "0.3.14"
-regex = "0.1.80"
 router = "^0.4.0"
 serde = "^0.8.17"
 serde_derive = "^0.8.17"
@@ -44,3 +41,6 @@ version = "^0.22.0"
 [dependencies.handlebars-iron]
 features = ["serde_type"]
 version = "^0.19.2"
+
+[dependencies.sharebill]
+path = "libs/sharebill"

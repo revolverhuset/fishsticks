@@ -1,0 +1,10 @@
+[package]
+authors = ["Magnus Hoff <maghoff@gmail.com>"]
+name = "sharebill"
+version = "0.1.0"
+
+[dependencies]
+lazy_static = "0.2.2"
+num = "0.1.36"
+quick-error = "1.1.0"
+regex = "0.1.80"
