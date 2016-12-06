@@ -12,6 +12,7 @@ quick_error! {
     }
 }
 
+#[derive(Debug)]
 pub struct Rational(num::BigRational);
 
 lazy_static! {
@@ -48,7 +49,9 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_works() {
-        "1 1/2".parse::<Rational>().unwrap();
+    fn it_can_parse_mixed_number() {
+        let actual = "1 1/2".parse::<Rational>().unwrap().0;
+        let expected = super::num::BigRational::new(3.into(), 2.into());
+        assert_eq!(expected, actual);
     }
 }
