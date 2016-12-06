@@ -4,11 +4,13 @@
 #[macro_use] extern crate diesel_codegen;
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate serde_derive;
+#[macro_use] extern crate lazy_static;
 
 mod config;
 mod ingest;
 mod models;
 mod schema;
+mod sharebill;
 mod slack;
 mod state;
 mod takedown;
