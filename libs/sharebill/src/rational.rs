@@ -5,7 +5,7 @@ use std::fmt;
 use std::ops;
 use std::str::FromStr;
 
-use self::num::Zero;
+use self::num::{BigRational, Zero, One};
 use self::regex::Regex;
 
 quick_error! {
@@ -50,15 +50,29 @@ impl FromStr for Rational {
 impl fmt::Display for Rational {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let x = &self.0;
-        let whole = x.to_integer();
-        let numer = x.numer() - x.denom() * &whole;
-        let denom = x.denom();
 
-        if whole == num::BigInt::zero() {
-            write!(f, "{}/{}", &numer, &denom)
+        let whole = x.to_integer();
+
+        if x.denom() == &num::BigInt::one() {
+            write!(f, "{}", &whole)
+        } else if whole.is_zero() {
+            write!(f, "{}/{}", &x.numer(), &x.denom())
         } else {
+            let numer = x.numer() - x.denom() * &whole;
+            let denom = x.denom();
+
             write!(f, "{} {}/{}", &whole, &numer, &denom)
         }
+    }
+}
+
+impl Zero for Rational {
+    fn zero() -> Rational {
+        Rational(BigRational::zero())
+    }
+
+    fn is_zero(&self) -> bool {
+        self.0.is_zero()
     }
 }
 
@@ -99,26 +113,41 @@ impl<'a, 'b> ops::Add<&'a Rational> for &'b Rational {
 #[cfg(test)]
 mod test {
     use super::*;
+    use super::num::Zero;
 
     #[test]
-    fn it_can_parse_mixed_number() {
+    fn parse_mixed_number() {
         let actual = "1 1/2".parse::<Rational>().unwrap().0;
         let expected = super::num::BigRational::new(3.into(), 2.into());
         assert_eq!(expected, actual);
     }
 
     #[test]
-    fn it_formats_simple_rational() {
+    fn format_simple_rational() {
         let r = "1/2".parse::<Rational>().unwrap();
         let actual = format!("{}", &r);
         assert_eq!("1/2", actual);
     }
 
     #[test]
-    fn it_formats_mixed_number() {
+    fn format_mixed_number() {
         let r = "1 1/2".parse::<Rational>().unwrap();
         let actual = format!("{}", &r);
         assert_eq!("1 1/2", actual);
+    }
+
+    #[test]
+    fn format_zero() {
+        let r = Rational::zero();
+        let actual = format!("{}", &r);
+        assert_eq!("0", actual);
+    }
+
+    #[test]
+    fn format_whole_number() {
+        let r = "5".parse::<Rational>().unwrap();
+        let actual = format!("{}", &r);
+        assert_eq!("5", actual);
     }
 
     #[test]
