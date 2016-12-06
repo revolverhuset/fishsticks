@@ -1,4 +1,5 @@
 extern crate iron;
+extern crate itertools;
 extern crate serde;
 extern crate serde_json;
 extern crate urlencoded;
@@ -12,6 +13,7 @@ use self::iron::prelude::*;
 use self::iron::status;
 use self::iron::headers::ContentType;
 use self::iron::modifiers::Header;
+use self::itertools::*;
 use self::urlencoded::UrlEncodedBody;
 
 quick_error! {
@@ -170,12 +172,24 @@ fn cmd_summary(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackRe
 
     let mut buf = String::new();
 
-    write!(&mut buf, ":raising_hand::memo: I've got:\n").unwrap();
-    for (menu_item, order_item) in items {
-        write!(&mut buf,
-            "{}: {}. {}\n",
-            order_item.person_name, menu_item.number, menu_item.name
-        ).unwrap();
+    write!(&mut buf, ":raising_hand: I've got:\n").unwrap();
+
+    let mut items_iter = items.iter().peekable();
+    while let Some(&&(_, ref order_item)) = items_iter.peek() {
+        write!(&mut buf, "{}: ", order_item.person_name).unwrap();
+
+        for (index, &(ref menu_item, _)) in
+            items_iter
+                .take_while_ref(|&&(_, ref x)| x.person_name == order_item.person_name)
+                .enumerate()
+        {
+            if index != 0 {
+                write!(&mut buf, ", ").unwrap();
+            }
+            write!(&mut buf, "{}. {}", menu_item.number, menu_item.name).unwrap();
+        }
+
+        write!(&mut buf, "\n").unwrap();
     }
 
     Ok(SlackResponse {
