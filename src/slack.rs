@@ -200,24 +200,25 @@ fn cmd_order(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> 
 }
 
 fn cmd_summary(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackResponse, Error> {
+    use std::fmt::Write;
+
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
     let items = state.items_in_order(open_order.id)?;
 
-    let blob = items.into_iter()
-        .map(|(menu_item, order_item)| {
-            format!("{}: {}. {}",
-                order_item.person_name,
-                menu_item.number,
-                menu_item.name,
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
+    let mut buf = String::new();
+
+    write!(&mut buf, ":raising_hand::memo: I've got:\n").unwrap();
+    for (menu_item, order_item) in items {
+        write!(&mut buf,
+            "{}: {}. {}\n",
+            order_item.person_name, menu_item.number, menu_item.name
+        ).unwrap();
+    }
 
     Ok(SlackResponse {
         response_type: ResponseType::Ephemeral,
-        text: format!(":raising_hand::memo: I've got:\n{}", blob),
+        text: buf,
         unfurl_links: false,
     })
 }
@@ -317,7 +318,7 @@ fn slack_core(maybe_slack_token: &Option<&str>, req: &mut Request) -> Result<Sla
         _ =>
             Ok(SlackResponse {
                 response_type: ResponseType::Ephemeral,
-                text: format!(":confused: Aw, shucks, I don't understand /ffs {} {}\n\
+                text: format!(":confused: Oh man! I don't understand /ffs {} {}\n\
                     Try /ffs help", &cmd, &args),
                 unfurl_links: false,
             }),
