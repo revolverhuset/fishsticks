@@ -51,11 +51,13 @@ impl fmt::Display for Rational {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let x = &self.0;
 
+        if x.denom() == &num::BigInt::one() {
+            return write!(f, "{}", &x.numer());
+        }
+
         let whole = x.to_integer();
 
-        if x.denom() == &num::BigInt::one() {
-            write!(f, "{}", &whole)
-        } else if whole.is_zero() {
+        if whole.is_zero() {
             write!(f, "{}/{}", &x.numer(), &x.denom())
         } else {
             let numer = x.numer() - x.denom() * &whole;
