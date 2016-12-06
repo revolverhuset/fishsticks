@@ -2,6 +2,7 @@ extern crate num;
 extern crate regex;
 
 use std::str::FromStr;
+use std::fmt;
 
 use self::regex::Regex;
 
@@ -44,6 +45,12 @@ impl FromStr for Rational {
     }
 }
 
+impl fmt::Display for Rational {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -53,5 +60,12 @@ mod test {
         let actual = "1 1/2".parse::<Rational>().unwrap().0;
         let expected = super::num::BigRational::new(3.into(), 2.into());
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn it_formats_simple_rational() {
+        let r = "1/2".parse::<Rational>().unwrap();
+        let actual = format!("{}", &r);
+        assert_eq!("1/2", actual);
     }
 }
