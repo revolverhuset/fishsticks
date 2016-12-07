@@ -127,6 +127,8 @@ fn ingest(req: &mut Request) -> IronResult<Response> {
 
     match req.get::<bodyparser::Struct<takedown::Menu>>() {
         Ok(Some(new_menu)) => {
+            println!("{:?}", &new_menu);
+
             let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
             state.ingest_menu(restaurant_id, &new_menu).unwrap();
 

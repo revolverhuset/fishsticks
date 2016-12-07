@@ -19,7 +19,7 @@ struct NewMenu {
     restaurant: i32,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Debug)]
 #[table_name="menu_items"]
 struct NewMenuItem<'a> {
     menu: i32,
@@ -56,6 +56,8 @@ pub fn menu(connection: &SqliteConnection, restaurant_id: i32, menu: &takedown::
         see https://github.com/diesel-rs/diesel/pull/166 */
 
     for new_menu_item in menu_items_to_insert {
+        println!("{:?}", &new_menu_item);
+
         diesel::insert(&new_menu_item)
             .into(menu_items::table)
             .execute(connection)?;
