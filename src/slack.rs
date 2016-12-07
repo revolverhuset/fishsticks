@@ -164,32 +164,20 @@ fn cmd_order(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> 
 }
 
 fn cmd_summary(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackResponse, Error> {
-    use std::fmt::Write;
-
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
     let items = state.items_in_order(open_order.id)?;
 
-    let mut buf = String::new();
+    let buf = items.into_iter()
+        .group_by(|&(_, ref order_item)| order_item.person_name.clone()).into_iter()
+        .map(|(person_name, items)| {
+            let orders = items.into_iter()
+                .map(|(menu_item, _)| format!("{}. {}", menu_item.number, menu_item.name))
+                .join(", ");
 
-    write!(&mut buf, ":raising_hand: I've got:\n").unwrap();
-
-    let mut items_iter = items.iter().peekable();
-    while let Some(&&(_, ref order_item)) = items_iter.peek() {
-        write!(&mut buf, "{}: ", order_item.person_name).unwrap();
-
-        let all_orders_for_person = items_iter
-            .take_while_ref(|&&(_, ref x)| x.person_name == order_item.person_name);
-
-        for (index, &(ref menu_item, _)) in all_orders_for_person.enumerate() {
-            if index != 0 {
-                write!(&mut buf, ", ").unwrap();
-            }
-            write!(&mut buf, "{}. {}", menu_item.number, menu_item.name).unwrap();
-        }
-
-        write!(&mut buf, "\n").unwrap();
-    }
+            format!("{}: {}", &person_name, &orders)
+        })
+        .join("\n");
 
     Ok(SlackResponse {
         response_type: ResponseType::Ephemeral,
