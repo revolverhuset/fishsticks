@@ -23,7 +23,7 @@ struct NewMenu {
 #[table_name="menu_items"]
 struct NewMenuItem<'a> {
     menu: i32,
-    id: i32,
+    number: i32,
     name: &'a str,
     price_in_cents: i32
 }
@@ -47,7 +47,7 @@ pub fn menu(connection: &SqliteConnection, restaurant_id: i32, menu: &takedown::
         .flat_map(|ref category| &category.entries)
         .map(|ref item| NewMenuItem {
             menu: menu_id,
-            id: item.number,
+            number: item.number,
             name: &item.name,
             price_in_cents: (item.price * 100.0) as i32
         });
