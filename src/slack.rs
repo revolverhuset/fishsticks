@@ -1,8 +1,13 @@
+extern crate hyper;
 extern crate iron;
 extern crate itertools;
+extern crate num;
 extern crate serde;
 extern crate serde_json;
+extern crate sharebill;
+extern crate time;
 extern crate urlencoded;
+extern crate uuid;
 
 use state;
 use std;
@@ -24,6 +29,12 @@ quick_error! {
         PoisonError
         InputError
         InvalidSlackToken
+        MissingAssociation(slack_name: String)
+        SerdeJson(err: serde_json::Error) { from() }
+        Hyper(err: hyper::Error) { from() }
+        UnexpectedStatus(status: hyper::status::StatusCode)
+        NotFound
+        MissingConfig(config_path: &'static str)
     }
 }
 
@@ -220,7 +231,106 @@ fn cmd_associate(state_mutex: &Mutex<state::State>, args: &str, user_name: &str)
     }
 }
 
-fn slack_core(maybe_slack_token: &Option<&str>, req: &mut Request) -> Result<SlackResponse, Error> {
+fn cmd_sharebill(state_mutex: &Mutex<state::State>, args: &str, user_name: &str, sharebill_url: &str) -> Result<SlackResponse, Error> {
+    use std::collections::HashMap;
+    use sharebill::Rational;
+    use self::num::Zero;
+
+    let state = state_mutex.lock()?;
+    let open_order = state.demand_open_order()?;
+
+    let description = format!("{}",
+        state.restaurant(
+            state.menu_object(open_order.menu)?
+                .ok_or(Error::NotFound)?
+                .restaurant
+        )?
+        .ok_or(Error::NotFound)?
+        .name
+    );
+
+    let associations = state.all_associations()?.into_iter()
+        .map(|x| (x.slack_name, x.sharebill_account))
+        .collect::<HashMap<_, _>>();
+
+    let items = state.items_in_order(open_order.id)?;
+
+    let persons = Rational::from(items.iter()
+        .group_by(|&&(_, ref order_item)| order_item.person_name.clone()).into_iter()
+        .count());
+
+    let overhead = Rational::from_cents(open_order.overhead_in_cents);
+    let overhead_per_person = overhead / persons;
+
+    let slack_debits = items.into_iter()
+        .group_by(|&(_, ref order_item)| order_item.person_name.clone()).into_iter()
+        .map(|(person_name, items)| {
+            let food = items.into_iter()
+                .map(|(menu_item, _)| Rational::from_cents(menu_item.price_in_cents))
+                .fold(Rational::zero(), |acc, x| acc + x);
+
+            (person_name, food + &overhead_per_person)
+        })
+        .collect::<Vec<_>>();
+
+    // Associations are deliberately used to bill orders by different
+    // people to the same accuont. This is handled below:
+    let mut debits = HashMap::<String, Rational>::new();
+    for (slack_name, value) in slack_debits {
+        let account = associations.get(&slack_name).ok_or(Error::MissingAssociation(slack_name))?;
+        let entry = debits.entry(account.clone()).or_insert_with(Rational::zero);
+        *entry = &*entry + value;
+    }
+
+    let credit_account = match args.len() {
+        0 => associations.get(user_name).map(|x| x as &str),
+        _ => Some(args)
+    }.ok_or(Error::MissingAssociation(user_name.to_owned()))?;
+
+    let total = debits.values().fold(Rational::zero(), |acc, x| acc + x);
+
+    let mut credits = HashMap::<String, Rational>::new();
+    credits.insert(credit_account.to_owned(), total);
+
+    let post = sharebill::models::Post {
+        meta: sharebill::models::Meta {
+            description: description,
+            timestamp: time::now_utc()
+        },
+        transaction: sharebill::models::Transaction {
+            debits: debits,
+            credits: credits
+        }
+    };
+
+    let target_url = format!("{}post/{}", &sharebill_url, &uuid::Uuid::new_v4());
+
+    let client = hyper::Client::new();
+
+    let res = client.put(&target_url)
+        .body(&serde_json::to_string(&post)?)
+        .send()?;
+
+    if res.status != hyper::status::StatusCode::Created {
+        return Err(Error::UnexpectedStatus(res.status));
+    }
+
+    state.close_current_order()?;
+
+    Ok(SlackResponse {
+        response_type: ResponseType::InChannel,
+        text: format!(":money_with_wings: Posted to <{}|Sharebill> and closed order :heavy_check_mark:", target_url),
+        unfurl_links: false,
+    })
+}
+
+fn slack_core(
+    maybe_slack_token: &Option<&str>,
+    maybe_sharebill_url: &Option<&str>,
+    req: &mut Request,
+) ->
+    Result<SlackResponse, Error>
+{
     let hashmap = req.get::<UrlEncodedBody>()?;
 
     println!("Parsed GET request query string:\n {:?}", hashmap);
@@ -267,6 +377,7 @@ fn slack_core(maybe_slack_token: &Option<&str>, req: &mut Request) -> Result<Sla
                     order QUERY\n    Order whatever matches QUERY in the menu\n\
                     restaurants\n    List known restaurants\n\
                     search QUERY\n    See what matches QUERY in the menu\n\
+                    sharebill [CREDIT_ACCOUNT]\n    Post order to Sharebill\n\
                     summary\n    See the current order\n\
                     ".to_owned(),
                 unfurl_links: false,
@@ -277,6 +388,8 @@ fn slack_core(maybe_slack_token: &Option<&str>, req: &mut Request) -> Result<Sla
         "order" => cmd_order(&state_mutex, args, user_name),
         "restaurants" => cmd_restaurants(&state_mutex, args),
         "search" => cmd_search(&state_mutex, args),
+        "sharebill" => cmd_sharebill(&state_mutex, args, user_name,
+            maybe_sharebill_url.ok_or(Error::MissingConfig("web.sharebill_url"))?),
         "summary" => cmd_summary(&state_mutex, args),
         _ =>
             Ok(SlackResponse {
@@ -288,8 +401,8 @@ fn slack_core(maybe_slack_token: &Option<&str>, req: &mut Request) -> Result<Sla
     }
 }
 
-pub fn slack(slack_token: &Option<&str>, req: &mut Request) -> IronResult<Response> {
-    match slack_core(slack_token, req) {
+pub fn slack(slack_token: &Option<&str>, sharebill_url: &Option<&str>, req: &mut Request) -> IronResult<Response> {
+    match slack_core(slack_token, sharebill_url, req) {
         Ok(response) => Ok(Response::with((
             status::Ok,
             serde_json::to_string(&response).unwrap(),

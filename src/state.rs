@@ -136,6 +136,16 @@ impl State {
         )
     }
 
+    pub fn menu_object(&self, menu_id: i32) -> Result<Option<models::Menu>, Error> {
+        use schema::menus::dsl::*;
+
+        Ok(menus
+            .find(menu_id)
+            .load::<models::Menu>(&self.db_connection)?
+            .pop()
+        )
+    }
+
     pub fn menu(&self, menu_id: i32) -> Result<Vec<models::MenuItem>, Error> {
         use schema::menu_items::dsl::*;
 

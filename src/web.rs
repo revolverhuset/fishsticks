@@ -156,7 +156,15 @@ fn menu(req: &mut Request) -> IronResult<Response> {
     Ok(Response::with((status::Ok, Template::new("menu", data))))
 }
 
-pub fn run(state: state::State, bind: &str, base_url: String, slack_token: Option<String>) -> Result<(), Error> {
+pub fn run(
+    state: state::State,
+    bind: &str,
+    base_url: String,
+    slack_token: Option<String>,
+    sharebill_url: Option<String>,
+) ->
+    Result<(), Error>
+{
     let mut hbse = HandlebarsEngine::new();
     hbse.add(Box::new(DirectorySource::new("./templates/", ".hbs")));
     hbse.reload()?;
@@ -169,7 +177,11 @@ pub fn run(state: state::State, bind: &str, base_url: String, slack_token: Optio
     router.get("/menu/:id", menu, "menu");
     router.post("/slack",
         move |req: &mut Request| {
-            slack::slack(&slack_token.as_ref().map(String::as_ref), req)
+            slack::slack(
+                &slack_token.as_ref().map(String::as_ref),
+                &sharebill_url.as_ref().map(String::as_ref),
+                req
+            )
         },
         "slack");
 
