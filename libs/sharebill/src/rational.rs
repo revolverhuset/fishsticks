@@ -18,6 +18,12 @@ quick_error! {
 #[derive(Debug, Eq)]
 pub struct Rational(num::BigRational);
 
+impl Rational {
+    pub fn from_cents(cents: i32) -> Rational {
+        Rational(num::BigRational::new(cents.into(), 100.into()))
+    }
+}
+
 lazy_static! {
     static ref MIXED_NUMBER: Regex = {
         // A regex error here is a problem with the regular expression, unwrap is ok.
@@ -68,6 +74,23 @@ impl fmt::Display for Rational {
     }
 }
 
+use serde;
+impl serde::Serialize for Rational {
+    fn serialize<S>(&self, ser: &mut S) -> Result<(), S::Error>
+        where S: serde::Serializer
+    {
+        ser.serialize_str(&format!("{}", self))
+    }
+}
+
+impl<T> From<T> for Rational
+    where num::BigInt : From<T>
+{
+    fn from(src: T) -> Rational {
+        Rational(BigRational::new(src.into(), num::BigInt::one()))
+    }
+}
+
 impl Zero for Rational {
     fn zero() -> Rational {
         Rational(BigRational::zero())
@@ -109,6 +132,13 @@ impl<'a, 'b> ops::Add<&'a Rational> for &'b Rational {
     type Output = Rational;
     fn add(self, other: &Rational) -> Rational {
         Rational(&self.0 + &other.0)
+    }
+}
+
+impl ops::Div<Rational> for Rational {
+    type Output = Rational;
+    fn div(self, other: Rational) -> Rational {
+        Rational(self.0 / other.0)
     }
 }
 
