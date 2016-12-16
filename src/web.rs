@@ -21,8 +21,8 @@ use self::urlencoded::UrlEncodedBody;
 quick_error! {
     #[derive(Debug)]
     pub enum Error {
-        Bummer
         Handlebars(err: handlebars_iron::SourceError) { from() }
+        IronHttp(err: iron::error::HttpError) { from() }
     }
 }
 
@@ -190,7 +190,7 @@ pub fn run(
     chain.link_before(EnvContainer(Arc::new(Env{ base_url: base_url })));
     chain.link_after(hbse);
 
-    let listening = Iron::new(chain).http(bind).map_err(|_| Error::Bummer)?;
+    let listening = Iron::new(chain).http(bind)?;
     println!("Listening to {:?}", &listening.socket);
     drop(listening); // Will implicitly block and keep handling requests
 
