@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/revolverhuset/fishsticks.svg?branch=master)](https://travis-ci.org/revolverhuset/fishsticks)
 
 Compile
--------
+=======
 `fishsticks` makes heavy use of procedural macros, also known as macros 1.1,
 via Diesel and Serde. These are presently only available in the nightly
 channel of Rust, but in contrast to compiler plugins, procedural macros are
@@ -14,7 +14,7 @@ If you are having problems compiling, you might have luck with running
 `rustup update` and trying again.
 
 OpenSSL on Mac OS X
-===================
+-------------------
 If you are having problems relating to OpenSSL when compiling on OS X, replace
 the `hyper`-line in `Cargo.toml` with something like:
 
@@ -38,5 +38,5 @@ In the future, [`hyper` might depend on rustls](https://github.com/hyperium/hype
 instead of OpenSSL. This would make the entire problem go away.
 
 Run
----
+===
     cargo run -- --database :memory: --migrations
