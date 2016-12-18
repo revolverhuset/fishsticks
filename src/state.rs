@@ -226,6 +226,16 @@ impl State {
         Ok(())
     }
 
+    pub fn set_overhead(&self, order_id: OrderId, new_overhead_in_cents: i32) -> Result<(), Error> {
+        use schema::orders::dsl::*;
+
+        diesel::update(orders.find(i32::from(order_id)))
+            .set(overhead_in_cents.eq(new_overhead_in_cents))
+            .execute(&self.db_connection)?;
+
+        Ok(())
+    }
+
     pub fn query_menu(&self, menu_id: MenuId, query: &Query) -> Result<Option<MenuItem>, Error> {
         use schema::menu_items::dsl::*;
 

@@ -27,7 +27,7 @@ quick_error! {
         StateError(err: state::Error) { from() }
         UrlDecodingError(err: urlencoded::UrlDecodingError) { from() }
         PoisonError
-        InputError
+        InputError { from(std::num::ParseFloatError) }
         InvalidSlackToken
         MissingAssociation(slack_name: String)
         SerdeJson(err: serde_json::Error) { from() }
@@ -324,6 +324,34 @@ fn cmd_sharebill(state_mutex: &Mutex<state::State>, args: &str, user_name: &str,
     })
 }
 
+fn cmd_overhead(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackResponse, Error> {
+    let state = state_mutex.lock()?;
+    let open_order = state.demand_open_order()?;
+
+    if args.len() == 0 {
+        Ok(SlackResponse {
+            response_type: ResponseType::Ephemeral,
+            text: format!(
+                ":information_desk_person: Overhead is set to {}.{:02}",
+                open_order.overhead_in_cents / 100, open_order.overhead_in_cents % 100),
+            unfurl_links: false,
+        })
+    } else {
+        let overhead = args.parse::<f64>()?;
+        let overhead_in_cents = (overhead * 100.0) as i32;
+
+        state.set_overhead(open_order.id, overhead_in_cents)?;
+
+        Ok(SlackResponse {
+            response_type: ResponseType::InChannel,
+            text: format!(
+                ":information_desk_person: Overhead is now {}.{:02}",
+                overhead_in_cents / 100, overhead_in_cents % 100),
+            unfurl_links: false,
+        })
+    }
+}
+
 fn slack_core(
     maybe_slack_token: &Option<&str>,
     maybe_sharebill_url: &Option<&str>,
@@ -375,6 +403,7 @@ fn slack_core(
                     help\n    This help\n\
                     openorder RESTAURANT\n    Start a new order from the given restaurant\n\
                     order QUERY\n    Order whatever matches QUERY in the menu\n\
+                    overhead [VALUE]\n    Get/set overhead (delivery cost, gratuity, etc) for current order\n\
                     restaurants\n    List known restaurants\n\
                     search QUERY\n    See what matches QUERY in the menu\n\
                     sharebill [CREDIT_ACCOUNT]\n    Post order to Sharebill\n\
@@ -386,6 +415,7 @@ fn slack_core(
         "closeorder" => cmd_closeorder(&state_mutex, args),
         "openorder" => cmd_openorder(&state_mutex, args, &env.base_url),
         "order" => cmd_order(&state_mutex, args, user_name),
+        "overhead" => cmd_overhead(&state_mutex, args),
         "restaurants" => cmd_restaurants(&state_mutex, args),
         "search" => cmd_search(&state_mutex, args),
         "sharebill" => cmd_sharebill(&state_mutex, args, user_name,
