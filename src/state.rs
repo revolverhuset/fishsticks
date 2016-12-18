@@ -217,7 +217,7 @@ impl State {
                 return Err(Error::OrderAlreadyClosed(current));
             }
 
-            diesel::update(orders.find(current.id))
+            diesel::update(orders.find(i32::from(current.id)))
                 .set(closed.eq(timestamp()))
                 .execute(&self.db_connection)?;
 
@@ -243,7 +243,7 @@ impl State {
             .pop())
     }
 
-    pub fn add_order_item(&self, order: i32, person_name: &str, menu_item: MenuItemId) -> Result<(), Error> {
+    pub fn add_order_item(&self, order: OrderId, person_name: &str, menu_item: MenuItemId) -> Result<(), Error> {
         use schema::order_items;
 
         #[derive(Insertable)]
@@ -255,7 +255,7 @@ impl State {
         }
 
         let new_order_item = NewOrderItem {
-            order: order,
+            order: i32::from(order),
             person_name: person_name,
             menu_item: i32::from(menu_item),
         };
@@ -266,12 +266,12 @@ impl State {
         Ok(())
     }
 
-    pub fn items_in_order(&self, order_id: i32) -> Result<Vec<(MenuItem, OrderItem)>, Error> {
+    pub fn items_in_order(&self, order_id: OrderId) -> Result<Vec<(MenuItem, OrderItem)>, Error> {
         use schema::order_items::dsl::*;
         use schema::menu_items;
 
         let oitems = order_items
-            .filter(order.eq(order_id))
+            .filter(order.eq(i32::from(order_id)))
             .order(person_name.asc())
             .load::<OrderItem>(&self.db_connection)?;
 

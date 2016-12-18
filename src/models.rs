@@ -41,6 +41,7 @@ macro_rules! generate_id_type {
 generate_id_type!(RestaurantId);
 generate_id_type!(MenuId);
 generate_id_type!(MenuItemId);
+generate_id_type!(OrderId);
 
 #[derive(Debug, Queryable, Serialize)]
 pub struct Restaurant {
@@ -67,7 +68,7 @@ pub struct MenuItem {
 
 #[derive(Debug, Queryable, Serialize)]
 pub struct Order {
-    pub id: i32,
+    pub id: OrderId,
     pub menu: MenuId,
     pub overhead_in_cents: i32,
     pub opened: i32,
@@ -78,7 +79,7 @@ pub struct Order {
 #[belongs_to(MenuItem)]
 pub struct OrderItem {
     pub id: i32,
-    pub order: i32,
+    pub order: OrderId,
     pub person_name: String,
     pub menu_item: MenuItemId,
 }
