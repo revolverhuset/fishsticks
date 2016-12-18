@@ -111,7 +111,7 @@ fn cmd_openorder(state_mutex: &Mutex<state::State>, args: &str, base_url: &str) 
         response_type: ResponseType::InChannel,
         text: format!(":bell: Now taking orders from the \
             <{}menu/{}|{} menu> :memo:",
-            base_url, menu.id, &restaurant.name),
+            base_url, i32::from(menu.id), &restaurant.name),
         unfurl_links: false,
     })
 }

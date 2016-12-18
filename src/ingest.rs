@@ -1,7 +1,7 @@
 use diesel;
 use diesel::sqlite::SqliteConnection;
 use schema::{menus, menu_items};
-use models::Menu;
+use models::{Menu, MenuId};
 use takedown;
 
 use diesel::prelude::*;
@@ -28,7 +28,7 @@ struct NewMenuItem<'a> {
     price_in_cents: i32
 }
 
-pub fn menu(connection: &SqliteConnection, restaurant_id: i32, menu: &takedown::Menu) -> Result<i32, Error> {
+pub fn menu(connection: &SqliteConnection, restaurant_id: i32, menu: &takedown::Menu) -> Result<MenuId, Error> {
     use schema::menus;
 
     let new_menu = NewMenu { restaurant: restaurant_id };
@@ -46,7 +46,7 @@ pub fn menu(connection: &SqliteConnection, restaurant_id: i32, menu: &takedown::
     let menu_items_to_insert = menu.iter()
         .flat_map(|ref category| &category.entries)
         .map(|ref item| NewMenuItem {
-            menu: menu_id,
+            menu: i32::from(menu_id),
             number: item.number,
             name: &item.name,
             price_in_cents: (item.price * 100.0) as i32

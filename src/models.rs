@@ -35,6 +35,7 @@ macro_rules! generate_id_type {
 }
 
 generate_id_type!(RestaurantId);
+generate_id_type!(MenuId);
 
 #[derive(Debug, Queryable, Serialize)]
 pub struct Restaurant {
@@ -44,7 +45,7 @@ pub struct Restaurant {
 
 #[derive(Debug, Queryable, Serialize)]
 pub struct Menu {
-    pub id: i32,
+    pub id: MenuId,
     pub restaurant: RestaurantId,
     pub imported: i32,
 }
@@ -53,7 +54,7 @@ pub struct Menu {
 #[has_many(order_items, foreign_key="menu_item")]
 pub struct MenuItem {
     pub id: i32,
-    pub menu: i32,
+    pub menu: MenuId,
     pub number: i32,
     pub name: String,
     pub price_in_cents: i32,
@@ -62,7 +63,7 @@ pub struct MenuItem {
 #[derive(Debug, Queryable, Serialize)]
 pub struct Order {
     pub id: i32,
-    pub menu: i32,
+    pub menu: MenuId,
     pub overhead_in_cents: i32,
     pub opened: i32,
     pub closed: Option<i32>,

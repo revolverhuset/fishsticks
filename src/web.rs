@@ -5,7 +5,7 @@ extern crate router;
 extern crate serde_json;
 extern crate urlencoded;
 
-use models::RestaurantId;
+use models::{RestaurantId, MenuId};
 use std::sync::{Arc, Mutex};
 use std::collections::BTreeMap;
 use slack;
@@ -148,9 +148,11 @@ fn menu(req: &mut Request) -> IronResult<Response> {
     use self::serde_json::value::{self, Value};
     let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
 
-    let menu_id = req.extensions.get::<Router>().unwrap()
-        .find("id").unwrap()
-        .parse::<i32>().unwrap();
+    let menu_id: MenuId =
+        req.extensions.get::<Router>().unwrap()
+            .find("id").unwrap()
+            .parse::<i32>().unwrap()
+            .into();
 
     let mut data = BTreeMap::<String, Value>::new();
 

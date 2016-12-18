@@ -2,7 +2,7 @@ extern crate time;
 
 use diesel;
 use ingest;
-use models;
+use models::*;
 use std;
 use takedown;
 
@@ -13,8 +13,8 @@ quick_error! {
     pub enum Error {
         Diesel(err: diesel::result::Error) { from() }
         Ingest(err: ingest::Error) { from() }
-        OrderAlreadyOpen(current_open_order: models::Order) { }
-        OrderAlreadyClosed(order: models::Order) { }
+        OrderAlreadyOpen(current_open_order: Order) { }
+        OrderAlreadyClosed(order: Order) { }
         CouldntCreateTransaction(err: diesel::result::Error) { }
         NoOpenOrder
         NotFound
@@ -66,7 +66,7 @@ impl State {
         }
     }
 
-    pub fn create_restaurant(&self, name: &str) -> Result<models::RestaurantId, Error> {
+    pub fn create_restaurant(&self, name: &str) -> Result<RestaurantId, Error> {
         use schema::restaurants;
 
         #[derive(Insertable)]
@@ -83,100 +83,100 @@ impl State {
 
         let restaurant_id = restaurants::table
             .filter(restaurants::name.eq(name))
-            .load::<models::Restaurant>(&self.db_connection)?
+            .load::<Restaurant>(&self.db_connection)?
             [0].id;
 
         Ok(restaurant_id)
     }
 
-    pub fn restaurants(&self) -> Result<Vec<models::Restaurant>, Error> {
+    pub fn restaurants(&self) -> Result<Vec<Restaurant>, Error> {
         use schema::restaurants::dsl::*;
 
-        Ok(restaurants.load::<models::Restaurant>(&self.db_connection)?)
+        Ok(restaurants.load::<Restaurant>(&self.db_connection)?)
     }
 
-    pub fn restaurant(&self, restaurant_id: models::RestaurantId) -> Result<Option<models::Restaurant>, Error> {
+    pub fn restaurant(&self, restaurant_id: RestaurantId) -> Result<Option<Restaurant>, Error> {
         use schema::restaurants::dsl::*;
 
         Ok(restaurants
             .find(i32::from(restaurant_id))
-            .load::<models::Restaurant>(&self.db_connection)?
+            .load::<Restaurant>(&self.db_connection)?
             .pop())
     }
 
-    pub fn restaurant_by_name(&self, query_name: &str) -> Result<Option<models::Restaurant>, Error> {
+    pub fn restaurant_by_name(&self, query_name: &str) -> Result<Option<Restaurant>, Error> {
         use schema::restaurants::dsl::*;
 
         Ok(restaurants
             .filter(name.eq(query_name))
             .limit(1)
-            .load::<models::Restaurant>(&self.db_connection)?
+            .load::<Restaurant>(&self.db_connection)?
             .pop())
     }
 
-    pub fn menus_for_restaurant(&self, restaurant_id: models::RestaurantId) -> Result<Vec<models::Menu>, Error> {
+    pub fn menus_for_restaurant(&self, restaurant_id: RestaurantId) -> Result<Vec<Menu>, Error> {
         use schema::menus::dsl::*;
 
         Ok(menus
             .filter(restaurant.eq(i32::from(restaurant_id)))
             .order(imported.desc())
-            .load::<models::Menu>(&self.db_connection)?
+            .load::<Menu>(&self.db_connection)?
         )
     }
 
-    pub fn current_menu_for_restaurant(&self, restaurant_id: models::RestaurantId) -> Result<models::Menu, Error> {
+    pub fn current_menu_for_restaurant(&self, restaurant_id: RestaurantId) -> Result<Menu, Error> {
         use schema::menus::dsl::*;
 
         Ok(menus
             .filter(restaurant.eq(i32::from(restaurant_id)))
             .order(imported.desc())
             .limit(1)
-            .load::<models::Menu>(&self.db_connection)?
+            .load::<Menu>(&self.db_connection)?
             .pop().ok_or(Error::NotFound)?
         )
     }
 
-    pub fn menu_object(&self, menu_id: i32) -> Result<Option<models::Menu>, Error> {
+    pub fn menu_object(&self, menu_id: MenuId) -> Result<Option<Menu>, Error> {
         use schema::menus::dsl::*;
 
         Ok(menus
-            .find(menu_id)
-            .load::<models::Menu>(&self.db_connection)?
+            .find(i32::from(menu_id))
+            .load::<Menu>(&self.db_connection)?
             .pop()
         )
     }
 
-    pub fn menu(&self, menu_id: i32) -> Result<Vec<models::MenuItem>, Error> {
+    pub fn menu(&self, menu_id: MenuId) -> Result<Vec<MenuItem>, Error> {
         use schema::menu_items::dsl::*;
 
         Ok(menu_items
-            .filter(menu.eq(menu_id))
-            .load::<models::MenuItem>(&self.db_connection)?
+            .filter(menu.eq(i32::from(menu_id)))
+            .load::<MenuItem>(&self.db_connection)?
         )
     }
 
-    pub fn ingest_menu(&self, restaurant_id: models::RestaurantId, menu: &takedown::Menu) -> Result<(), Error> {
+    pub fn ingest_menu(&self, restaurant_id: RestaurantId, menu: &takedown::Menu) -> Result<(), Error> {
         self.db_connection.transaction(|| {
             ingest::menu(&self.db_connection, i32::from(restaurant_id), menu)
         })?;
         Ok(())
     }
 
-    pub fn current_open_order(&self) -> Result<Option<models::Order>, Error> {
+    pub fn current_open_order(&self) -> Result<Option<Order>, Error> {
         use schema::orders::dsl::*;
 
         Ok(orders
             .filter(closed.is_null())
             .limit(1)
-            .load::<models::Order>(&self.db_connection)?
+            .load::<Order>(&self.db_connection)?
             .pop())
     }
 
-    pub fn demand_open_order(&self) -> Result<models::Order, Error> {
+    pub fn demand_open_order(&self) -> Result<Order, Error> {
         self.current_open_order()?.ok_or(Error::NoOpenOrder)
     }
 
-    pub fn create_order(&self, menu_id: i32) -> Result<(), Error> {
+    pub fn create_order(&self, menu_id: MenuId) -> Result<(), Error> {
         use schema::orders;
 
         #[derive(Insertable)]
@@ -193,7 +193,7 @@ impl State {
             }
 
             let new_order = NewOrder {
-                menu: menu_id,
+                menu: i32::from(menu_id),
                 overhead_in_cents: 0,
                 opened: timestamp(),
             };
@@ -226,7 +226,7 @@ impl State {
         Ok(())
     }
 
-    pub fn query_menu(&self, menu_id: i32, query: &Query) -> Result<Option<models::MenuItem>, Error> {
+    pub fn query_menu(&self, menu_id: MenuId, query: &Query) -> Result<Option<MenuItem>, Error> {
         use schema::menu_items::dsl::*;
 
         Ok(match *query {
@@ -237,9 +237,9 @@ impl State {
                     .filter(name.eq(string))
                     .into_boxed(),
         }
-            .filter(menu.eq(menu_id))
+            .filter(menu.eq(i32::from(menu_id)))
             .limit(1)
-            .load::<models::MenuItem>(&self.db_connection)?
+            .load::<MenuItem>(&self.db_connection)?
             .pop())
     }
 
@@ -266,16 +266,16 @@ impl State {
         Ok(())
     }
 
-    pub fn items_in_order(&self, order_id: i32) -> Result<Vec<(models::MenuItem, models::OrderItem)>, Error> {
+    pub fn items_in_order(&self, order_id: i32) -> Result<Vec<(MenuItem, OrderItem)>, Error> {
         use schema::order_items::dsl::*;
         use schema::menu_items;
 
         let oitems = order_items
             .filter(order.eq(order_id))
             .order(person_name.asc())
-            .load::<models::OrderItem>(&self.db_connection)?;
+            .load::<OrderItem>(&self.db_connection)?;
 
-        let mut result = Vec::<(models::MenuItem, models::OrderItem)>::new();
+        let mut result = Vec::<(MenuItem, OrderItem)>::new();
 
         // Join manually, because I am unable to get Diesel to do it for me :(
         for oitem in oitems {
@@ -313,12 +313,12 @@ impl State {
         Ok(())
     }
 
-    pub fn all_associations(&self) -> Result<Vec<models::SharebillAssociation>, Error> {
+    pub fn all_associations(&self) -> Result<Vec<SharebillAssociation>, Error> {
         use schema::sharebill_associations::dsl::*;
 
         Ok(sharebill_associations
             .order(slack_name.asc())
-            .load::<models::SharebillAssociation>(&self.db_connection)?
+            .load::<SharebillAssociation>(&self.db_connection)?
         )
     }
 }
