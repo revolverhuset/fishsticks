@@ -66,7 +66,7 @@ impl State {
         }
     }
 
-    pub fn create_restaurant(&self, name: &str) -> Result<i32, Error> {
+    pub fn create_restaurant(&self, name: &str) -> Result<models::RestaurantId, Error> {
         use schema::restaurants;
 
         #[derive(Insertable)]
@@ -95,11 +95,11 @@ impl State {
         Ok(restaurants.load::<models::Restaurant>(&self.db_connection)?)
     }
 
-    pub fn restaurant(&self, restaurant_id: i32) -> Result<Option<models::Restaurant>, Error> {
+    pub fn restaurant(&self, restaurant_id: models::RestaurantId) -> Result<Option<models::Restaurant>, Error> {
         use schema::restaurants::dsl::*;
 
         Ok(restaurants
-            .find(restaurant_id)
+            .find(i32::from(restaurant_id))
             .load::<models::Restaurant>(&self.db_connection)?
             .pop())
     }
@@ -114,21 +114,21 @@ impl State {
             .pop())
     }
 
-    pub fn menus_for_restaurant(&self, restaurant_id: i32) -> Result<Vec<models::Menu>, Error> {
+    pub fn menus_for_restaurant(&self, restaurant_id: models::RestaurantId) -> Result<Vec<models::Menu>, Error> {
         use schema::menus::dsl::*;
 
         Ok(menus
-            .filter(restaurant.eq(restaurant_id))
+            .filter(restaurant.eq(i32::from(restaurant_id)))
             .order(imported.desc())
             .load::<models::Menu>(&self.db_connection)?
         )
     }
 
-    pub fn current_menu_for_restaurant(&self, restaurant_id: i32) -> Result<models::Menu, Error> {
+    pub fn current_menu_for_restaurant(&self, restaurant_id: models::RestaurantId) -> Result<models::Menu, Error> {
         use schema::menus::dsl::*;
 
         Ok(menus
-            .filter(restaurant.eq(restaurant_id))
+            .filter(restaurant.eq(i32::from(restaurant_id)))
             .order(imported.desc())
             .limit(1)
             .load::<models::Menu>(&self.db_connection)?
@@ -155,9 +155,9 @@ impl State {
         )
     }
 
-    pub fn ingest_menu(&self, restaurant_id: i32, menu: &takedown::Menu) -> Result<(), Error> {
+    pub fn ingest_menu(&self, restaurant_id: models::RestaurantId, menu: &takedown::Menu) -> Result<(), Error> {
         self.db_connection.transaction(|| {
-            ingest::menu(&self.db_connection, restaurant_id, menu)
+            ingest::menu(&self.db_connection, i32::from(restaurant_id), menu)
         })?;
         Ok(())
     }

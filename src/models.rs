@@ -1,15 +1,45 @@
+use std;
+use diesel;
+use diesel::types::*;
 use schema::{menu_items, order_items};
+
+#[derive(Copy, Clone, Debug, Serialize)]
+pub struct RestaurantId(i32);
+
+impl FromSql<Integer, diesel::sqlite::Sqlite> for RestaurantId {
+    fn from_sql(bytes: Option<&<diesel::sqlite::Sqlite as diesel::backend::Backend>::RawValue>) -> Result<Self, Box<std::error::Error + Send + Sync>> {
+        FromSql::<Integer, diesel::sqlite::Sqlite>::from_sql(bytes)
+            .map(|x| RestaurantId(x))
+    }
+}
+
+impl FromSqlRow<Integer, diesel::sqlite::Sqlite> for RestaurantId {
+    fn build_from_row<T>(row: &mut T) -> Result<Self, Box<std::error::Error + Send + Sync>>
+        where T : diesel::row::Row<diesel::sqlite::Sqlite>
+    {
+        FromSqlRow::<Integer, diesel::sqlite::Sqlite>::build_from_row(row)
+            .map(|x| RestaurantId(x))
+    }
+}
+
+impl From<i32> for RestaurantId {
+    fn from(src: i32) -> Self { RestaurantId(src) }
+}
+
+impl From<RestaurantId> for i32 {
+    fn from(src: RestaurantId) -> Self { src.0 }
+}
 
 #[derive(Debug, Queryable, Serialize)]
 pub struct Restaurant {
-    pub id: i32,
+    pub id: RestaurantId,
     pub name: String,
 }
 
 #[derive(Debug, Queryable, Serialize)]
 pub struct Menu {
     pub id: i32,
-    pub restaurant: i32,
+    pub restaurant: RestaurantId,
     pub imported: i32,
 }
 

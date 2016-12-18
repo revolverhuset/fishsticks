@@ -5,6 +5,7 @@ extern crate router;
 extern crate serde_json;
 extern crate urlencoded;
 
+use models::RestaurantId;
 use std::sync::{Arc, Mutex};
 use std::collections::BTreeMap;
 use slack;
@@ -92,7 +93,7 @@ fn create_restaurant(req: &mut Request) -> IronResult<Response> {
         )))
     };
 
-    let created_url = format!("{}restaurant/{}", &env.base_url, id);
+    let created_url = format!("{}restaurant/{}", &env.base_url, i32::from(id));
 
     Ok(Response::with((
         status::Created,
@@ -105,9 +106,11 @@ fn restaurant(req: &mut Request) -> IronResult<Response> {
     use self::serde_json::value::{self, Value};
     let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
 
-    let restaurant_id = req.extensions.get::<Router>().unwrap()
-        .find("id").unwrap()
-        .parse::<i32>().unwrap();
+    let restaurant_id : RestaurantId =
+        req.extensions.get::<Router>().unwrap()
+            .find("id").unwrap()
+            .parse::<i32>().unwrap()
+            .into();
 
     let mut data = BTreeMap::<String, Value>::new();
 
@@ -121,9 +124,11 @@ fn restaurant(req: &mut Request) -> IronResult<Response> {
 }
 
 fn ingest(req: &mut Request) -> IronResult<Response> {
-    let restaurant_id = req.extensions.get::<Router>().unwrap()
-        .find("id").unwrap()
-        .parse::<i32>().unwrap();
+    let restaurant_id : RestaurantId =
+        req.extensions.get::<Router>().unwrap()
+            .find("id").unwrap()
+            .parse::<i32>().unwrap()
+            .into();
 
     match req.get::<bodyparser::Struct<takedown::Menu>>() {
         Ok(Some(new_menu)) => {
