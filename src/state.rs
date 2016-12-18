@@ -243,7 +243,7 @@ impl State {
             .pop())
     }
 
-    pub fn add_order_item(&self, order: i32, person_name: &str, menu_item: i32) -> Result<(), Error> {
+    pub fn add_order_item(&self, order: i32, person_name: &str, menu_item: MenuItemId) -> Result<(), Error> {
         use schema::order_items;
 
         #[derive(Insertable)]
@@ -257,7 +257,7 @@ impl State {
         let new_order_item = NewOrderItem {
             order: order,
             person_name: person_name,
-            menu_item: menu_item,
+            menu_item: i32::from(menu_item),
         };
 
         diesel::insert(&new_order_item).into(order_items::table)
@@ -281,7 +281,7 @@ impl State {
         for oitem in oitems {
             result.push((
                 menu_items::table
-                    .find(oitem.menu_item)
+                    .find(i32::from(oitem.menu_item))
                     .load(&self.db_connection)?
                     .pop().unwrap(),
                 oitem,

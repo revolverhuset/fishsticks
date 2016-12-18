@@ -5,7 +5,7 @@ use schema::{menu_items, order_items};
 
 macro_rules! generate_id_type {
     ( $x:ident ) => {
-        #[derive(Copy, Clone, Debug, Serialize)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, Serialize)]
         pub struct $x(i32);
 
         impl FromSql<Integer, diesel::sqlite::Sqlite> for $x {
@@ -31,11 +31,16 @@ macro_rules! generate_id_type {
         impl From<$x> for i32 {
             fn from(src: $x) -> Self { src.0 }
         }
+
+        impl PartialEq for $x {
+            fn eq(&self, rhs: &$x) -> bool { self.0.eq(&rhs.0) }
+        }
     };
 }
 
 generate_id_type!(RestaurantId);
 generate_id_type!(MenuId);
+generate_id_type!(MenuItemId);
 
 #[derive(Debug, Queryable, Serialize)]
 pub struct Restaurant {
@@ -53,7 +58,7 @@ pub struct Menu {
 #[derive(Debug, Queryable, Serialize, Identifiable, Associations)]
 #[has_many(order_items, foreign_key="menu_item")]
 pub struct MenuItem {
-    pub id: i32,
+    pub id: MenuItemId,
     pub menu: MenuId,
     pub number: i32,
     pub name: String,
@@ -75,7 +80,7 @@ pub struct OrderItem {
     pub id: i32,
     pub order: i32,
     pub person_name: String,
-    pub menu_item: i32,
+    pub menu_item: MenuItemId,
 }
 
 #[derive(Debug, Queryable, Serialize)]
