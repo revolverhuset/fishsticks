@@ -3,32 +3,38 @@ use diesel;
 use diesel::types::*;
 use schema::{menu_items, order_items};
 
-#[derive(Copy, Clone, Debug, Serialize)]
-pub struct RestaurantId(i32);
+macro_rules! generate_id_type {
+    ( $x:ident ) => {
+        #[derive(Copy, Clone, Debug, Serialize)]
+        pub struct $x(i32);
 
-impl FromSql<Integer, diesel::sqlite::Sqlite> for RestaurantId {
-    fn from_sql(bytes: Option<&<diesel::sqlite::Sqlite as diesel::backend::Backend>::RawValue>) -> Result<Self, Box<std::error::Error + Send + Sync>> {
-        FromSql::<Integer, diesel::sqlite::Sqlite>::from_sql(bytes)
-            .map(|x| RestaurantId(x))
-    }
+        impl FromSql<Integer, diesel::sqlite::Sqlite> for $x {
+            fn from_sql(bytes: Option<&<diesel::sqlite::Sqlite as diesel::backend::Backend>::RawValue>) -> Result<Self, Box<std::error::Error + Send + Sync>> {
+                FromSql::<Integer, diesel::sqlite::Sqlite>::from_sql(bytes)
+                    .map(|x| $x(x))
+            }
+        }
+
+        impl FromSqlRow<Integer, diesel::sqlite::Sqlite> for $x {
+            fn build_from_row<T>(row: &mut T) -> Result<Self, Box<std::error::Error + Send + Sync>>
+                where T : diesel::row::Row<diesel::sqlite::Sqlite>
+            {
+                FromSqlRow::<Integer, diesel::sqlite::Sqlite>::build_from_row(row)
+                    .map(|x| $x(x))
+            }
+        }
+
+        impl From<i32> for $x {
+            fn from(src: i32) -> Self { $x(src) }
+        }
+
+        impl From<$x> for i32 {
+            fn from(src: $x) -> Self { src.0 }
+        }
+    };
 }
 
-impl FromSqlRow<Integer, diesel::sqlite::Sqlite> for RestaurantId {
-    fn build_from_row<T>(row: &mut T) -> Result<Self, Box<std::error::Error + Send + Sync>>
-        where T : diesel::row::Row<diesel::sqlite::Sqlite>
-    {
-        FromSqlRow::<Integer, diesel::sqlite::Sqlite>::build_from_row(row)
-            .map(|x| RestaurantId(x))
-    }
-}
-
-impl From<i32> for RestaurantId {
-    fn from(src: i32) -> Self { RestaurantId(src) }
-}
-
-impl From<RestaurantId> for i32 {
-    fn from(src: RestaurantId) -> Self { src.0 }
-}
+generate_id_type!(RestaurantId);
 
 #[derive(Debug, Queryable, Serialize)]
 pub struct Restaurant {
