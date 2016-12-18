@@ -42,6 +42,7 @@ generate_id_type!(RestaurantId);
 generate_id_type!(MenuId);
 generate_id_type!(MenuItemId);
 generate_id_type!(OrderId);
+generate_id_type!(OrderItemId);
 
 #[derive(Debug, Queryable, Serialize)]
 pub struct Restaurant {
@@ -78,7 +79,7 @@ pub struct Order {
 #[derive(Debug, Queryable, Serialize, Identifiable, Associations)]
 #[belongs_to(MenuItem)]
 pub struct OrderItem {
-    pub id: i32,
+    pub id: OrderItemId,
     pub order: OrderId,
     pub person_name: String,
     pub menu_item: MenuItemId,
