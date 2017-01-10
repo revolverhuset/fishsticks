@@ -3,7 +3,8 @@ extern crate iron;
 extern crate router;
 extern crate urlencoded;
 
-use models::{RestaurantId, MenuId};
+use models::{self, RestaurantId, MenuId};
+use std::fmt::Display;
 use std::sync::{Arc, Mutex};
 use slack;
 use state;
@@ -22,49 +23,41 @@ quick_error! {
     }
 }
 
-mod template {
-    use models;
-    use std::fmt::Display;
+#[derive(BartDisplay)]
+#[template = "templates/layout.html"]
+pub struct Layout<'a> {
+    body: &'a Display,
+}
 
-    #[derive(BartDisplay)]
-    #[template = "templates/layout.html"]
-    pub struct Layout<'a> {
-        body: &'a Display,
-    }
-
-    impl<'a> Layout<'a> {
-        pub fn new(body: &'a Display) -> Layout<'a> {
-            Layout {
-                body: body
-            }
+impl<'a> Layout<'a> {
+    pub fn new(body: &'a Display) -> Layout<'a> {
+        Layout {
+            body: body
         }
     }
+}
 
-    use super::iron;
-    impl<'a> iron::modifier::Modifier<iron::Response> for Layout<'a> {
-        fn modify(self, response: &mut iron::Response) {
-            response.headers.set(iron::headers::ContentType::html());
-            format!("{}", &self).modify(response);
-        }
+impl<'a> iron::modifier::Modifier<iron::Response> for Layout<'a> {
+    fn modify(self, response: &mut iron::Response) {
+        response.headers.set(iron::headers::ContentType::html());
+        format!("{}", &self).modify(response);
     }
+}
 
-    #[derive(BartDisplay)]
-    #[template = "templates/index.html"]
-    pub struct Index {
-        pub restaurants: Vec<models::Restaurant>,
-    }
-
+mod tweak {
     // Bart 0.0.1 can't handle field names with underscore, so
     // we have to map to another type without that.
+
     pub struct MenuItem {
-        pub id: models::MenuItemId,
-        pub menu: models::MenuId,
+        pub id: super::models::MenuItemId,
+        pub menu: super::models::MenuId,
         pub number: i32,
         pub name: String,
         pub priceincents: i32,
     }
-    impl From<models::MenuItem> for MenuItem {
-        fn from(src: models::MenuItem) -> MenuItem {
+
+    impl From<super::models::MenuItem> for MenuItem {
+        fn from(src: super::models::MenuItem) -> MenuItem {
             MenuItem {
                 id: src.id,
                 menu: src.menu,
@@ -73,19 +66,6 @@ mod template {
                 priceincents: src.price_in_cents,
             }
         }
-    }
-
-    #[derive(BartDisplay)]
-    #[template = "templates/menu.html"]
-    pub struct Menu {
-        pub menu: Vec<MenuItem>,
-    }
-
-    #[derive(BartDisplay)]
-    #[template = "templates/restaurant.html"]
-    pub struct Restaurant {
-        pub restaurant: models::Restaurant,
-        pub menus: Vec<models::Menu>,
     }
 }
 
@@ -120,9 +100,15 @@ impl BeforeMiddleware for EnvContainer {
 fn index(req: &mut Request) -> IronResult<Response> {
     let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
 
+    #[derive(BartDisplay)]
+    #[template = "templates/index.html"]
+    pub struct Index {
+        pub restaurants: Vec<models::Restaurant>,
+    }
+
     Ok(Response::with((
         status::Ok,
-        template::Layout::new(&template::Index {
+        Layout::new(&Index {
             restaurants: state.restaurants().unwrap()
         })
     )))
@@ -171,9 +157,16 @@ fn restaurant(req: &mut Request) -> IronResult<Response> {
             .parse::<i32>().unwrap()
             .into();
 
+    #[derive(BartDisplay)]
+    #[template = "templates/restaurant.html"]
+    pub struct Restaurant {
+        pub restaurant: models::Restaurant,
+        pub menus: Vec<models::Menu>,
+    }
+
     Ok(Response::with((
         status::Ok,
-        template::Layout::new(&template::Restaurant {
+        Layout::new(&Restaurant {
             restaurant: state.restaurant(restaurant_id).unwrap().unwrap(),
             menus: state.menus_for_restaurant(restaurant_id).unwrap(),
         })
@@ -210,9 +203,15 @@ fn menu(req: &mut Request) -> IronResult<Response> {
             .parse::<i32>().unwrap()
             .into();
 
+    #[derive(BartDisplay)]
+    #[template = "templates/menu.html"]
+    pub struct Menu {
+        pub menu: Vec<tweak::MenuItem>,
+    }
+
     Ok(Response::with((
         status::Ok,
-        template::Layout::new(&template::Menu {
+        Layout::new(&Menu {
             menu: state.menu(menu_id).unwrap()
                 .into_iter().map(|x| x.into()).collect()
         })
