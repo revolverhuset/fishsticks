@@ -12,6 +12,8 @@ features = ["sqlite"]
 version = "^0.9.0"
 
 [dependencies]
+bart = "0.0.1"
+bart_derive = "0.0.1"
 bodyparser = "0.4.1"
 getopts = "^0.2.14"
 hyper = "^0.9.12"
@@ -36,14 +38,6 @@ version = "^0.9.0"
 default-features = false
 features = ["sqlite"]
 version = "^0.9.0"
-
-[dependencies.handlebars]
-features = ["serde_type"]
-version = "^0.23.0"
-
-[dependencies.handlebars-iron]
-features = ["serde_type"]
-version = "^0.19.2"
 
 [dependencies.sharebill]
 path = "libs/sharebill"

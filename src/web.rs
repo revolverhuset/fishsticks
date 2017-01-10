@@ -1,18 +1,16 @@
 extern crate bodyparser;
-extern crate handlebars_iron;
 extern crate iron;
 extern crate router;
-extern crate serde_json;
 extern crate urlencoded;
 
 use models::{RestaurantId, MenuId};
 use std::sync::{Arc, Mutex};
-use std::collections::BTreeMap;
 use slack;
 use state;
 use takedown;
 
-use self::handlebars_iron::{Template, HandlebarsEngine, DirectorySource};
+use self::iron::headers::ContentType;
+use self::iron::modifiers::Header;
 use self::iron::prelude::*;
 use self::iron::{status, typemap, BeforeMiddleware};
 use self::router::Router;
@@ -22,8 +20,65 @@ use self::urlencoded::UrlEncodedBody;
 quick_error! {
     #[derive(Debug)]
     pub enum Error {
-        Handlebars(err: handlebars_iron::SourceError) { from() }
         IronHttp(err: iron::error::HttpError) { from() }
+    }
+}
+
+mod template {
+    use models;
+
+    #[derive(BartDisplay)]
+    #[template = "templates/header.html"]
+    pub struct Header;
+
+    #[derive(BartDisplay)]
+    #[template = "templates/footer.html"]
+    pub struct Footer;
+
+    #[derive(BartDisplay)]
+    #[template = "templates/index.html"]
+    pub struct Index {
+        pub header: Header,
+        pub footer: Footer,
+        pub restaurants: Vec<models::Restaurant>,
+    }
+
+    // Bart 0.0.1 can't handle field names with underscore, so
+    // we have to map to another type without that.
+    pub struct MenuItem {
+        pub id: models::MenuItemId,
+        pub menu: models::MenuId,
+        pub number: i32,
+        pub name: String,
+        pub priceincents: i32,
+    }
+    impl From<models::MenuItem> for MenuItem {
+        fn from(src: models::MenuItem) -> MenuItem {
+            MenuItem {
+                id: src.id,
+                menu: src.menu,
+                number: src.number,
+                name: src.name,
+                priceincents: src.price_in_cents,
+            }
+        }
+    }
+
+    #[derive(BartDisplay)]
+    #[template = "templates/menu.html"]
+    pub struct Menu {
+        pub header: Header,
+        pub footer: Footer,
+        pub menu: Vec<MenuItem>,
+    }
+
+    #[derive(BartDisplay)]
+    #[template = "templates/restaurant.html"]
+    pub struct Restaurant {
+        pub header: Header,
+        pub footer: Footer,
+        pub restaurant: models::Restaurant,
+        pub menus: Vec<models::Menu>,
     }
 }
 
@@ -56,16 +111,17 @@ impl BeforeMiddleware for EnvContainer {
 }
 
 fn index(req: &mut Request) -> IronResult<Response> {
-    use self::serde_json::value::{self, Value};
     let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
 
-    let mut data = BTreeMap::<String, Value>::new();
-
-    let restaurants = state.restaurants().unwrap();
-
-    data.insert("restaurants".to_string(), value::to_value(&restaurants));
-
-    Ok(Response::with((status::Ok, Template::new("index", data))))
+    Ok(Response::with((
+        status::Ok,
+        format!("{}", template::Index {
+            header: template::Header,
+            footer: template::Footer,
+            restaurants: state.restaurants().unwrap()
+        }),
+        Header(ContentType::html()),
+    )))
 }
 
 fn create_restaurant(req: &mut Request) -> IronResult<Response> {
@@ -103,7 +159,6 @@ fn create_restaurant(req: &mut Request) -> IronResult<Response> {
 }
 
 fn restaurant(req: &mut Request) -> IronResult<Response> {
-    use self::serde_json::value::{self, Value};
     let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
 
     let restaurant_id : RestaurantId =
@@ -112,15 +167,16 @@ fn restaurant(req: &mut Request) -> IronResult<Response> {
             .parse::<i32>().unwrap()
             .into();
 
-    let mut data = BTreeMap::<String, Value>::new();
-
-    let restaurant = state.restaurant(restaurant_id).unwrap();
-    let menus = state.menus_for_restaurant(restaurant_id).unwrap();
-
-    data.insert("restaurant".to_string(), value::to_value(&restaurant));
-    data.insert("menus".to_string(), value::to_value(&menus));
-
-    Ok(Response::with((status::Ok, Template::new("restaurant", data))))
+    Ok(Response::with((
+        status::Ok,
+        format!("{}", template::Restaurant {
+            header: template::Header,
+            footer: template::Footer,
+            restaurant: state.restaurant(restaurant_id).unwrap().unwrap(),
+            menus: state.menus_for_restaurant(restaurant_id).unwrap(),
+        }),
+        Header(ContentType::html()),
+    )))
 }
 
 fn ingest(req: &mut Request) -> IronResult<Response> {
@@ -145,7 +201,6 @@ fn ingest(req: &mut Request) -> IronResult<Response> {
 }
 
 fn menu(req: &mut Request) -> IronResult<Response> {
-    use self::serde_json::value::{self, Value};
     let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
 
     let menu_id: MenuId =
@@ -154,13 +209,15 @@ fn menu(req: &mut Request) -> IronResult<Response> {
             .parse::<i32>().unwrap()
             .into();
 
-    let mut data = BTreeMap::<String, Value>::new();
-
-    let menu = state.menu(menu_id).unwrap();
-
-    data.insert("menu".to_string(), value::to_value(&menu));
-
-    Ok(Response::with((status::Ok, Template::new("menu", data))))
+    Ok(Response::with((
+        status::Ok,
+        format!("{}", template::Menu {
+            header: template::Header,
+            footer: template::Footer,
+            menu: state.menu(menu_id).unwrap().into_iter().map(|x| x.into()).collect()
+        }),
+        Header(ContentType::html()),
+    )))
 }
 
 pub fn run(
@@ -172,10 +229,6 @@ pub fn run(
 ) ->
     Result<(), Error>
 {
-    let mut hbse = HandlebarsEngine::new();
-    hbse.add(Box::new(DirectorySource::new("./templates/", ".hbs")));
-    hbse.reload()?;
-
     let mut router = Router::new();
     router.get("/", index, "index");
     router.post("/restaurant/", create_restaurant, "create_restaurant");
@@ -195,7 +248,6 @@ pub fn run(
     let mut chain = Chain::new(router);
     chain.link_before(StateContainer(Arc::new(Mutex::new(state))));
     chain.link_before(EnvContainer(Arc::new(Env{ base_url: base_url })));
-    chain.link_after(hbse);
 
     let listening = Iron::new(chain).http(bind)?;
     println!("Listening to {:?}", &listening.socket);

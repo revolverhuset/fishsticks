@@ -35,6 +35,12 @@ macro_rules! generate_id_type {
         impl PartialEq for $x {
             fn eq(&self, rhs: &$x) -> bool { self.0.eq(&rhs.0) }
         }
+
+        impl std::fmt::Display for $x {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+                self.0.fmt(f)
+            }
+        }
     };
 }
 

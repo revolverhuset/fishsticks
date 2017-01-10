@@ -1,9 +1,9 @@
-{{> header }}
+{{{header}}}
 <h2>Restaurants</h2>
 <ul>
-    {{#each restaurants}}
-    <li><a href="restaurant/{{this.id}}">{{this.name}}</a></li>
-    {{/each}}
+    {{#restaurants}}
+    <li><a href="restaurant/{{.id}}">{{.name}}</a></li>
+    {{/restaurants}}
 </ul>
 <form method="post" action="restaurant/">
 <h3>Add new restaurant</h3>
@@ -11,4 +11,4 @@
 <input id='new_restaurant_name' name='name' placeholder='restaurant' required>
 <input type="submit" value="Add restaurant">
 </form>
-{{> footer }}
+{{{footer}}}

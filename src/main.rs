@@ -1,3 +1,4 @@
+#[macro_use] extern crate bart_derive;
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate diesel_codegen;
 #[macro_use] extern crate quick_error;
