@@ -34,12 +34,12 @@ impl From<state::Error> for iron::IronError {
 
 #[derive(BartDisplay)]
 #[template = "templates/layout.html"]
-pub struct Layout<'a> {
+struct Layout<'a> {
     body: &'a Display,
 }
 
 impl<'a> Layout<'a> {
-    pub fn new(body: &'a Display) -> Layout<'a> {
+    fn new(body: &'a Display) -> Layout<'a> {
         Layout {
             body: body
         }
@@ -111,8 +111,8 @@ fn index(req: &mut Request) -> IronResult<Response> {
 
     #[derive(BartDisplay)]
     #[template = "templates/index.html"]
-    pub struct Index {
-        pub restaurants: Vec<models::Restaurant>,
+    struct Index {
+        restaurants: Vec<models::Restaurant>,
     }
 
     Ok(Response::with((
@@ -168,9 +168,9 @@ fn restaurant(req: &mut Request) -> IronResult<Response> {
 
     #[derive(BartDisplay)]
     #[template = "templates/restaurant.html"]
-    pub struct Restaurant {
-        pub restaurant: models::Restaurant,
-        pub menus: Vec<models::Menu>,
+    struct Restaurant {
+        restaurant: models::Restaurant,
+        menus: Vec<models::Menu>,
     }
 
     Ok(Response::with((
@@ -214,8 +214,8 @@ fn menu(req: &mut Request) -> IronResult<Response> {
 
     #[derive(BartDisplay)]
     #[template = "templates/menu.html"]
-    pub struct Menu {
-        pub menu: Vec<tweak::MenuItem>,
+    struct Menu {
+        menu: Vec<tweak::MenuItem>,
     }
 
     Ok(Response::with((
