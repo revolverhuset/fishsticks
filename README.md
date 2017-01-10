@@ -2,10 +2,10 @@
 
 Compile
 =======
-`fishsticks` makes heavy use of procedural macros, also known as macros 1.1,
-via Diesel and Serde. These are presently only available in the nightly
-channel of Rust, but in contrast to compiler plugins, procedural macros are
-intended to be stabilized and become available in the stable channel.
+`fishsticks` makes heavy use of procedural macros, also known as macros 1.1.
+These are presently only available in the beta and nightly channels of Rust.
+Procedural macros are expected to be available in stable Rust version 1.15, to
+be released February 3.
 
     rustup override set nightly
     cargo build

@@ -1,5 +1,3 @@
-#![feature(proc_macro)]
-#![feature(custom_attribute)]
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate diesel_codegen;
 #[macro_use] extern crate quick_error;
