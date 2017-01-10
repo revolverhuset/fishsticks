@@ -9,8 +9,6 @@ use slack;
 use state;
 use takedown;
 
-use self::iron::headers::ContentType;
-use self::iron::modifiers::Header;
 use self::iron::prelude::*;
 use self::iron::{status, typemap, BeforeMiddleware};
 use self::router::Router;
@@ -26,20 +24,33 @@ quick_error! {
 
 mod template {
     use models;
+    use std::fmt::Display;
 
     #[derive(BartDisplay)]
-    #[template = "templates/header.html"]
-    pub struct Header;
+    #[template = "templates/layout.html"]
+    pub struct Layout<'a> {
+        body: &'a Display,
+    }
 
-    #[derive(BartDisplay)]
-    #[template = "templates/footer.html"]
-    pub struct Footer;
+    impl<'a> Layout<'a> {
+        pub fn new(body: &'a Display) -> Layout<'a> {
+            Layout {
+                body: body
+            }
+        }
+    }
+
+    use super::iron;
+    impl<'a> iron::modifier::Modifier<iron::Response> for Layout<'a> {
+        fn modify(self, response: &mut iron::Response) {
+            response.headers.set(iron::headers::ContentType::html());
+            format!("{}", &self).modify(response);
+        }
+    }
 
     #[derive(BartDisplay)]
     #[template = "templates/index.html"]
     pub struct Index {
-        pub header: Header,
-        pub footer: Footer,
         pub restaurants: Vec<models::Restaurant>,
     }
 
@@ -67,16 +78,12 @@ mod template {
     #[derive(BartDisplay)]
     #[template = "templates/menu.html"]
     pub struct Menu {
-        pub header: Header,
-        pub footer: Footer,
         pub menu: Vec<MenuItem>,
     }
 
     #[derive(BartDisplay)]
     #[template = "templates/restaurant.html"]
     pub struct Restaurant {
-        pub header: Header,
-        pub footer: Footer,
         pub restaurant: models::Restaurant,
         pub menus: Vec<models::Menu>,
     }
@@ -115,12 +122,9 @@ fn index(req: &mut Request) -> IronResult<Response> {
 
     Ok(Response::with((
         status::Ok,
-        format!("{}", template::Index {
-            header: template::Header,
-            footer: template::Footer,
+        template::Layout::new(&template::Index {
             restaurants: state.restaurants().unwrap()
-        }),
-        Header(ContentType::html()),
+        })
     )))
 }
 
@@ -169,13 +173,10 @@ fn restaurant(req: &mut Request) -> IronResult<Response> {
 
     Ok(Response::with((
         status::Ok,
-        format!("{}", template::Restaurant {
-            header: template::Header,
-            footer: template::Footer,
+        template::Layout::new(&template::Restaurant {
             restaurant: state.restaurant(restaurant_id).unwrap().unwrap(),
             menus: state.menus_for_restaurant(restaurant_id).unwrap(),
-        }),
-        Header(ContentType::html()),
+        })
     )))
 }
 
@@ -211,12 +212,10 @@ fn menu(req: &mut Request) -> IronResult<Response> {
 
     Ok(Response::with((
         status::Ok,
-        format!("{}", template::Menu {
-            header: template::Header,
-            footer: template::Footer,
-            menu: state.menu(menu_id).unwrap().into_iter().map(|x| x.into()).collect()
-        }),
-        Header(ContentType::html()),
+        template::Layout::new(&template::Menu {
+            menu: state.menu(menu_id).unwrap()
+                .into_iter().map(|x| x.into()).collect()
+        })
     )))
 }
 
