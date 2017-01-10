@@ -15,11 +15,20 @@ use self::iron::{status, typemap, BeforeMiddleware};
 use self::router::Router;
 use self::urlencoded::UrlEncodedBody;
 
-// TODO Understand error handling with Iron
 quick_error! {
     #[derive(Debug)]
     pub enum Error {
         IronHttp(err: iron::error::HttpError) { from() }
+    }
+}
+
+impl From<state::Error> for iron::IronError {
+    fn from(err: state::Error) -> iron::IronError {
+        let msg = format!("{:?}", &err);
+        iron::IronError::new(
+            err,
+            (status::InternalServerError, msg)
+        )
     }
 }
 
@@ -109,7 +118,7 @@ fn index(req: &mut Request) -> IronResult<Response> {
     Ok(Response::with((
         status::Ok,
         Layout::new(&Index {
-            restaurants: state.restaurants().unwrap()
+            restaurants: state.restaurants()?
         })
     )))
 }
@@ -167,8 +176,8 @@ fn restaurant(req: &mut Request) -> IronResult<Response> {
     Ok(Response::with((
         status::Ok,
         Layout::new(&Restaurant {
-            restaurant: state.restaurant(restaurant_id).unwrap().unwrap(),
-            menus: state.menus_for_restaurant(restaurant_id).unwrap(),
+            restaurant: state.restaurant(restaurant_id)?.unwrap(),
+            menus: state.menus_for_restaurant(restaurant_id)?,
         })
     )))
 }
@@ -185,7 +194,7 @@ fn ingest(req: &mut Request) -> IronResult<Response> {
             println!("{:?}", &new_menu);
 
             let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
-            state.ingest_menu(restaurant_id, &new_menu).unwrap();
+            state.ingest_menu(restaurant_id, &new_menu)?;
 
             Ok(Response::with(status::Ok))
         }
@@ -212,7 +221,7 @@ fn menu(req: &mut Request) -> IronResult<Response> {
     Ok(Response::with((
         status::Ok,
         Layout::new(&Menu {
-            menu: state.menu(menu_id).unwrap()
+            menu: state.menu(menu_id)?
                 .into_iter().map(|x| x.into()).collect()
         })
     )))
