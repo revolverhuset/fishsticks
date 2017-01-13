@@ -18,12 +18,14 @@ mod words;
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 
+embed_migrations!();
+
 fn connect_database(connection_string: &str, run_migrations: bool) -> SqliteConnection {
     let connection = SqliteConnection::establish(connection_string)
         .expect(&format!("Error connecting to database at {}", connection_string));
 
     if run_migrations {
-        diesel::migrations::run_pending_migrations(&connection).unwrap();
+        embedded_migrations::run(&connection).unwrap();
     }
 
     connection
