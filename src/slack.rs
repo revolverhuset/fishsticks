@@ -35,6 +35,7 @@ quick_error! {
         UnexpectedStatus(status: hyper::status::StatusCode)
         NotFound
         MissingConfig(config_path: &'static str)
+        FormatError(err: std::fmt::Error) { from() }
     }
 }
 
@@ -179,16 +180,18 @@ fn cmd_summary(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackRe
     let open_order = state.demand_open_order()?;
     let items = state.items_in_order(open_order.id)?;
 
-    let buf = items.into_iter()
-        .group_by(|&(_, ref order_item)| order_item.person_name.clone()).into_iter()
-        .map(|(person_name, items)| {
-            let orders = items.into_iter()
-                .map(|(menu_item, _)| format!("{}. {}", menu_item.number, menu_item.name))
-                .join(", ");
+    use std::fmt::Write;
+    let mut buf = String::new();
 
-            format!("{}: {}", &person_name, &orders)
-        })
-        .join("\n");
+    for (person_name, items) in
+        items.into_iter()
+            .group_by(|&(_, ref order_item)| order_item.person_name.clone()).into_iter()
+    {
+        writeln!(&mut buf, "{}:", person_name)?;
+        for (menu_item, _) in items {
+            writeln!(&mut buf, " - {}. {}", menu_item.number, menu_item.name)?;
+        }
+    }
 
     Ok(SlackResponse {
         response_type: ResponseType::Ephemeral,

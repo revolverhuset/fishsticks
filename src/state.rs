@@ -282,7 +282,7 @@ impl State {
 
         let oitems = order_items
             .filter(order.eq(i32::from(order_id)))
-            .order(person_name.asc())
+            .order((person_name.asc(), menu_item.asc()))
             .load::<OrderItem>(&self.db_connection)?;
 
         let mut result = Vec::<(MenuItem, OrderItem)>::new();
