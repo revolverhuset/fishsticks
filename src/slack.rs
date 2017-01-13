@@ -1,7 +1,7 @@
-extern crate hyper;
 extern crate iron;
 extern crate itertools;
 extern crate num;
+extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 extern crate sharebill;
@@ -31,11 +31,11 @@ quick_error! {
         InvalidSlackToken
         MissingAssociation(slack_name: String)
         SerdeJson(err: serde_json::Error) { from() }
-        Hyper(err: hyper::Error) { from() }
-        UnexpectedStatus(status: hyper::status::StatusCode)
+        UnexpectedStatus(status: reqwest::StatusCode)
         NotFound
         MissingConfig(config_path: &'static str)
         FormatError(err: std::fmt::Error) { from() }
+        ReqwestError(err: reqwest::Error) { from() }
     }
 }
 
@@ -308,14 +308,13 @@ fn cmd_sharebill(state_mutex: &Mutex<state::State>, args: &str, user_name: &str,
 
     let target_url = format!("{}post/{}", &sharebill_url, &uuid::Uuid::new_v4());
 
-    let client = hyper::Client::new();
-
-    let res = client.put(&target_url)
-        .body(&serde_json::to_string(&post)?)
+    let res = reqwest::Client::new()?
+        .request(reqwest::Method::Put, &target_url)
+        .json(&post)
         .send()?;
 
-    if res.status != hyper::status::StatusCode::Created {
-        return Err(Error::UnexpectedStatus(res.status));
+    if res.status() != &reqwest::StatusCode::Created {
+        return Err(Error::UnexpectedStatus(res.status().clone()));
     }
 
     state.close_current_order()?;
