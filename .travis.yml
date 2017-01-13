@@ -1,3 +1,23 @@
 language: rust
 rust:
   - nightly
+
+script:
+  - cargo build
+  - cargo test
+  - cargo build --release
+  - cargo test --release
+  - xz -9 target/release/fishsticks
+
+deploy:
+  provider: releases
+  api_key:
+    secure: "FvEvsFDVqQikO38wBi7I64MkONP1bQleQWBnXKTg49Bi/8lj/URpRJVehkzj8LoB56YEPF0cdSsnkZreSV7zo3UWh7TpavPiIkQKj1N6mt0pqcYWW/DBMmM85juvc94dJLVbUSbMMxhox/RuAJ5xhTqKU62L5yfufMEb4Z2O+LnOOQp215uetgvfQrtiONhoj7kAnGVsqiEGlSXebxHM4nB58EunHZ7b9cZTuUjt6vu854oW8GMniglWcGcfGjeAF9ZQXx6VxR4ATrC7D/tgRihhd+labfuPlWqJP4oGgtsqIhtEcqYvQCzvg2Erhk026AjX95GK1oUcdMf0TMcxsd4LNbGCARJz8WWvQnKJADXXmPkbq5hLIsdgWwmZpVd0PT2qVRf81n/mTJNepmZdThIo3xOqZU1sUyxbIU0A5D5aNFQH2O7BeVTYsfqnnVu34Fp1ShxU1XO309We93fQC+dmIUHaS3zfz70YELqKDWtcL6A3vhoybT49kiJOOPip+5wYUJB+vpDuUQzI03na36q8wFcNEBe+nQw1m1ckSUsIQFLZl35J2NnaI7n2CymwbmD6zupl63N8RGVInCBq6NuXZtFPfcQq0FhVBqffHbMdHYWaZF//ZksCOPnD6uJMzioNJrKkfN7EX/JIYYlAT75u8WObmrRolqXfQjgtUew="
+  file: "target/release/fishsticks.xz"
+  skip_cleanup: true
+  on:
+    branch: master
+
+cache: cargo
+before_cache:
+  - chmod -R a+r $HOME/.cargo
