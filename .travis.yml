@@ -19,3 +19,8 @@ deploy:
 cache: cargo
 before_cache:
   - chmod -R a+r $HOME/.cargo
+
+# Skip building tags automatically set by travis on deploy:
+branches:
+  except:
+    - /^untagged-/
