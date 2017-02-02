@@ -21,23 +21,23 @@ itertools = "0.5.6"
 num = "0.1.36"
 quick-error = "^1.1.0"
 rand = "0.3.14"
-reqwest = "0.3.0"
+reqwest = "0.4.0"
 router = "^0.5"
-serde = "^0.8.17"
-serde_derive = "^0.8.21"
-serde_json = "^0.8.3"
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"
 time = "0.1.35"
 urlencoded = "0.5"
 
 [dependencies.diesel]
 default-features = false
 features = ["sqlite"]
-version = "^0.9.0"
+version = "0.10.0"
 
 [dependencies.diesel_codegen]
 default-features = false
 features = ["sqlite"]
-version = "^0.9.0"
+version = "0.10.0"
 
 [dependencies.sharebill]
 path = "libs/sharebill"

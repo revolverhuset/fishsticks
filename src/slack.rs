@@ -51,7 +51,7 @@ enum ResponseType {
 }
 
 impl serde::Serialize for ResponseType {
-    fn serialize<S: serde::Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(match *self {
             ResponseType::Ephemeral => "ephemeral",
             ResponseType::InChannel => "in_channel",

@@ -1,6 +1,7 @@
 extern crate bodyparser;
 extern crate iron;
 extern crate router;
+extern crate serde_json;
 extern crate urlencoded;
 
 use models::{self, RestaurantId, MenuId};
@@ -8,7 +9,6 @@ use std::fmt::Display;
 use std::sync::{Arc, Mutex};
 use slack;
 use state;
-use takedown;
 
 use self::iron::prelude::*;
 use self::iron::{status, typemap, BeforeMiddleware};
@@ -189,8 +189,8 @@ fn ingest(req: &mut Request) -> IronResult<Response> {
             .parse::<i32>().unwrap()
             .into();
 
-    match req.get::<bodyparser::Struct<takedown::Menu>>() {
-        Ok(Some(new_menu)) => {
+    match req.get::<bodyparser::Raw>().map(|x| x.map(|x| serde_json::from_str(&x))) {
+        Ok(Some(Ok(new_menu))) => {
             println!("{:?}", &new_menu);
 
             let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
@@ -198,6 +198,7 @@ fn ingest(req: &mut Request) -> IronResult<Response> {
 
             Ok(Response::with(status::Ok))
         }
+        Ok(Some(Err(err))) => Ok(Response::with((status::BadRequest, format!("{:?}", err)))),
         Ok(None) => Ok(Response::with((status::BadRequest, "Missing body"))),
         Err(err) => Ok(Response::with((status::BadRequest, format!("{:?}", err)))),
     }

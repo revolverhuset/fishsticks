@@ -76,7 +76,7 @@ impl fmt::Display for Rational {
 
 use serde;
 impl serde::Serialize for Rational {
-    fn serialize<S>(&self, ser: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, ser: S) -> Result<S::Ok, S::Error>
         where S: serde::Serializer
     {
         ser.serialize_str(&format!("{}", self))

@@ -26,7 +26,7 @@ pub struct Post {
     pub transaction: Transaction,
 }
 
-fn serialize_time<S>(t: &time::Tm, ser: &mut S) -> Result<(), S::Error>
+fn serialize_time<S>(t: &time::Tm, ser: S) -> Result<S::Ok, S::Error>
     where S: serde::Serializer
 {
     ser.serialize_str(&format!("{}", t.rfc3339()))
