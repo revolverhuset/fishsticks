@@ -53,31 +53,6 @@ impl<'a> iron::modifier::Modifier<iron::Response> for Layout<'a> {
     }
 }
 
-mod tweak {
-    // Bart 0.0.1 can't handle field names with underscore, so
-    // we have to map to another type without that.
-
-    pub struct MenuItem {
-        pub id: super::models::MenuItemId,
-        pub menu: super::models::MenuId,
-        pub number: i32,
-        pub name: String,
-        pub priceincents: i32,
-    }
-
-    impl From<super::models::MenuItem> for MenuItem {
-        fn from(src: super::models::MenuItem) -> MenuItem {
-            MenuItem {
-                id: src.id,
-                menu: src.menu,
-                number: src.number,
-                name: src.name,
-                priceincents: src.price_in_cents,
-            }
-        }
-    }
-}
-
 #[derive(Clone)]
 pub struct StateContainer(pub Arc<Mutex<state::State>>);
 
@@ -216,14 +191,13 @@ fn menu(req: &mut Request) -> IronResult<Response> {
     #[derive(BartDisplay)]
     #[template = "templates/menu.html"]
     struct Menu {
-        menu: Vec<tweak::MenuItem>,
+        menu: Vec<models::MenuItem>,
     }
 
     Ok(Response::with((
         status::Ok,
         Layout::new(&Menu {
             menu: state.menu(menu_id)?
-                .into_iter().map(|x| x.into()).collect()
         })
     )))
 }

@@ -2,8 +2,8 @@
 name = "fishsticks"
 version = "0.1.0"
 dependencies = [
- "bart 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "bart_derive 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bart 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bart_derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bodyparser 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -49,15 +49,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "bart"
-version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "bart_derive"
-version = "0.0.1"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "nom 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "bart_derive"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "nom 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
  "quick-error 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -877,8 +881,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum advapi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e06588080cb19d0acb6739808aafa5f26bfb2ca015b2b6370028b44cf7cb8a9a"
 "checksum aho-corasick 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ca972c2ea5f742bfce5687b9aef75506a764f61d37f8f649047846a9686ddb66"
 "checksum antidote 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "34fde25430d87a9388dadbe6e34d7f72a462c8b43ac8d309b42b0a8505d7e2a5"
-"checksum bart 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5f6cf6bd1b59409f8d0170ee25c1c1b3089311c07e9b5f43b82c256e353a1cf1"
-"checksum bart_derive 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "fdfebbc80094de63aa205f1696ec2bec5fc0b9d56dd9e84d5f394dabf04ac074"
+"checksum bart 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "eb8a666d08c9f211f0d0763b632436f850f59ff6705e8efaf61c4aeccc86feca"
+"checksum bart_derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "87080a05e00c007476e8038ba20e80c51a44352e3aeb9754100dc6c466bd5016"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum bodyparser 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6928e817538b74a73d1dd6e9a942a2a35c632a597b6bb14fd009480f859a6bf5"
 "checksum byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)" = "29b2aa490a8f546381308d68fc79e6bd753cd3ad839f7a7172897f1feedfa175"

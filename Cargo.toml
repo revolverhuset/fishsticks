@@ -12,8 +12,8 @@ features = ["sqlite"]
 version = "^0.9.0"
 
 [dependencies]
-bart = "0.0.1"
-bart_derive = "0.0.1"
+bart = "0.1.0"
+bart_derive = "0.1.0"
 bodyparser = "0.5"
 getopts = "^0.2.14"
 iron = "^0.5.1"
