@@ -6,7 +6,6 @@ dependencies = [
  "bart_derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bodyparser 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "diesel 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel_codegen 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "iron 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -121,16 +120,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "diesel"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "libsqlite3-sys 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -891,7 +880,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum core-foundation-sys 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "065a5d7ffdcbc8fa145d6f0746f3555025b9097a9e9cda59f7467abae670c78d"
 "checksum crypt32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e34988f7e069e0b2f3bfc064295161e489b2d4e04a2e4248fb94360cdf00b4ec"
 "checksum diesel 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4f0828cb2cbb0f3372b17e88c64571baab2848e69d4784e64e2ecc3db38298e8"
-"checksum diesel 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "572e0546bf05f51985b95af3f72ea1d32edf62370a94794ed7ad771a144fbe86"
 "checksum diesel_codegen 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2a6652438f59f0d6be0c0063ee8094947d916553f362e93d8a4cf58c5b9baaa6"
 "checksum diesel_codegen_shared 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f9ab9e0a0226311a1f250038da43d425119d6a8458edcd3e81e74c49a2c084bd"
 "checksum diesel_infer_schema 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "40a6f1aae75557d2c47a8cc6404b9712f368f96f4ab5224f062de39434c021e8"
