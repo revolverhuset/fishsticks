@@ -15,7 +15,7 @@ quick_error! {
     }
 }
 
-#[derive(Debug, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Rational(num::BigRational);
 
 impl Rational {
@@ -26,8 +26,8 @@ impl Rational {
 
 lazy_static! {
     static ref MIXED_NUMBER: Regex = {
-        // A regex error here is a problem with the regular expression, unwrap is ok.
-        Regex::new(r"^((-)?(\d+)( (\d+/\d+))?|(-?\d+/\d+))$").unwrap()
+        Regex::new(r"^((-)?(\d+)( (\d+/\d+))?|(-?\d+/\d+))$")
+            .expect("Error in hard-coded regex")
     };
 }
 
@@ -98,12 +98,6 @@ impl Zero for Rational {
 
     fn is_zero(&self) -> bool {
         self.0.is_zero()
-    }
-}
-
-impl PartialEq for Rational {
-    fn eq(&self, other: &Rational) -> bool {
-       self.0 == other.0
     }
 }
 

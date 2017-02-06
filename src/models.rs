@@ -5,7 +5,7 @@ use schema::{menu_items, order_items};
 
 macro_rules! generate_id_type {
     ( $x:ident ) => {
-        #[derive(Clone, Copy, Debug, Eq, Hash, Serialize)]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
         pub struct $x(i32);
 
         impl FromSql<Integer, diesel::sqlite::Sqlite> for $x {
@@ -30,10 +30,6 @@ macro_rules! generate_id_type {
 
         impl From<$x> for i32 {
             fn from(src: $x) -> Self { src.0 }
-        }
-
-        impl PartialEq for $x {
-            fn eq(&self, rhs: &$x) -> bool { self.0.eq(&rhs.0) }
         }
 
         impl std::fmt::Display for $x {
