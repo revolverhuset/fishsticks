@@ -1,3 +1,4 @@
+extern crate strsim;
 extern crate time;
 
 use diesel;
@@ -59,8 +60,8 @@ fn timestamp() -> i32 {
     time::now().to_timespec().sec as i32
 }
 
-fn distance(_: &str, _: &str) -> i32 {
-    0
+fn distance(a: &str, b: &str) -> usize {
+    ((1.-strsim::jaro_winkler(&a.to_lowercase(), &b.to_lowercase())) * 1000.) as usize
 }
 
 impl State {
