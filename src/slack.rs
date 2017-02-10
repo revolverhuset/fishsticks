@@ -367,9 +367,17 @@ fn cmd_overhead(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackRe
     }
 }
 
+fn cmd_sudo(state_mutex: &Mutex<state::State>, args: &str, _user_name: &str, env: &web::Env) -> Result<SlackResponse, Error> {
+    let mut split = args.splitn(3, ' ');
+    let user_name = split.next().unwrap();
+    let cmd = split.next().ok_or(Error::MissingArgument("command"))?;
+    let args = split.next().unwrap_or("");
+
+    exec_cmd(state_mutex, cmd, args, user_name, env)
+}
+
 fn slack_core(
     maybe_slack_token: &Option<&str>,
-    maybe_sharebill_url: &Option<&str>,
     req: &mut Request,
 ) ->
     Result<SlackResponse, Error>
@@ -406,6 +414,10 @@ fn slack_core(
 
     let user_name = &hashmap.get("user_name").ok_or(Error::MissingArgument("user_name"))?[0];
 
+    exec_cmd(&state_mutex, cmd, args, user_name, &env)
+}
+
+fn exec_cmd(state_mutex: &Mutex<state::State>, cmd: &str, args: &str, user_name: &str, env: &web::Env) -> Result<SlackResponse, Error> {
     match cmd {
         "help" =>
             Ok(SlackResponse {
@@ -420,6 +432,7 @@ fn slack_core(
                     restaurants\n    List known restaurants\n\
                     search QUERY\n    See what matches QUERY in the menu\n\
                     sharebill [CREDIT_ACCOUNT]\n    Post order to Sharebill\n\
+                    sudo USER args...\n    Perform the command specified in args as USER\n\
                     summary\n    See the current order\n\
                     ".to_owned(),
                 ..Default::default()
@@ -432,7 +445,8 @@ fn slack_core(
         "restaurants" => cmd_restaurants(&state_mutex, args),
         "search" => cmd_search(&state_mutex, args),
         "sharebill" => cmd_sharebill(&state_mutex, args, user_name,
-            maybe_sharebill_url.ok_or(Error::MissingConfig("web.sharebill_url"))?),
+            env.maybe_sharebill_url.as_ref().ok_or(Error::MissingConfig("web.sharebill_url"))?),
+        "sudo" => cmd_sudo(&state_mutex, args, user_name, env),
         "summary" => cmd_summary(&state_mutex, args),
         _ =>
             Ok(SlackResponse {
@@ -443,8 +457,8 @@ fn slack_core(
     }
 }
 
-pub fn slack(slack_token: &Option<&str>, sharebill_url: &Option<&str>, req: &mut Request) -> IronResult<Response> {
-    match slack_core(slack_token, sharebill_url, req) {
+pub fn slack(slack_token: &Option<&str>, req: &mut Request) -> IronResult<Response> {
+    match slack_core(slack_token, req) {
         Ok(response) => Ok(Response::with((
             status::Ok,
             serde_json::to_string(&response).unwrap(),
