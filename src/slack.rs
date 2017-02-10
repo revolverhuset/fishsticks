@@ -348,15 +348,18 @@ fn cmd_overhead(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackRe
             ..Default::default()
         })
     } else {
+        let old_overhead_in_cents = open_order.overhead_in_cents;
+
         let overhead = args.parse::<f64>()?;
-        let overhead_in_cents = (overhead * 100.0) as i32;
+        let overhead_in_cents = (overhead * 100.0).round() as i32;
 
         state.set_overhead(open_order.id, overhead_in_cents)?;
 
         Ok(SlackResponse {
             response_type: ResponseType::InChannel,
             text: format!(
-                ":information_desk_person: Overhead is now {}.{:02}",
+                ":information_desk_person: Overhead changed from {}.{:02} to {}.{:02}",
+                old_overhead_in_cents / 100, old_overhead_in_cents % 100,
                 overhead_in_cents / 100, overhead_in_cents % 100),
             ..Default::default()
         })
