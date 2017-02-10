@@ -1,3 +1,4 @@
+extern crate strsim;
 extern crate time;
 
 use diesel;
@@ -57,6 +58,10 @@ pub struct State {
 
 fn timestamp() -> i32 {
     time::now().to_timespec().sec as i32
+}
+
+fn distance(a: &str, b: &str) -> usize {
+    ((1.-strsim::jaro_winkler(&a.to_lowercase(), &b.to_lowercase())) * 1000.) as usize
 }
 
 impl State {
@@ -236,21 +241,25 @@ impl State {
         Ok(())
     }
 
-    pub fn query_menu(&self, menu_id: MenuId, query: &Query) -> Result<Option<MenuItem>, Error> {
+    pub fn query_menu(&self, menu_id: MenuId, query: &Query) -> Result<Vec<MenuItem>, Error> {
         use schema::menu_items::dsl::*;
 
-        Ok(match *query {
+        let all_items = menu_items
+            .filter(menu.eq(i32::from(menu_id)));
+
+        match *query {
             Query::ExactInteger(integer) =>
-                menu_items.filter(number.eq(integer)).into_boxed(),
-            Query::FuzzyString(string) =>
-                menu_items
-                    .filter(name.eq(string))
-                    .into_boxed(),
+                Ok(all_items
+                    .filter(number.eq(integer))
+                    .limit(1)
+                    .load::<MenuItem>(&self.db_connection)?
+                ),
+            Query::FuzzyString(string) => {
+                let mut items = all_items.load::<MenuItem>(&self.db_connection)?;
+                items.sort_by_key(|x| distance(&string, &x.name));
+                Ok(items)
+            }
         }
-            .filter(menu.eq(i32::from(menu_id)))
-            .limit(1)
-            .load::<MenuItem>(&self.db_connection)?
-            .pop())
     }
 
     pub fn add_order_item(&self, order: OrderId, person_name: &str, menu_item: MenuItemId) -> Result<(), Error> {

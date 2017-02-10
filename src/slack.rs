@@ -36,6 +36,7 @@ quick_error! {
         MissingConfig(config_path: &'static str)
         FormatError(err: std::fmt::Error) { from() }
         ReqwestError(err: reqwest::Error) { from() }
+        MissingArgument(arg: &'static str)
     }
 }
 
@@ -45,21 +46,22 @@ impl<T> std::convert::From<std::sync::PoisonError<T>> for Error {
     }
 }
 
+#[derive(Serialize)]
 enum ResponseType {
+    #[serde(rename = "ephemeral")]
     Ephemeral,
+
+    #[serde(rename = "in_channel")]
     InChannel,
 }
 
-impl serde::Serialize for ResponseType {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(match *self {
-            ResponseType::Ephemeral => "ephemeral",
-            ResponseType::InChannel => "in_channel",
-        })
+impl Default for ResponseType {
+    fn default() -> ResponseType {
+        ResponseType::Ephemeral
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
 struct SlackResponse {
     response_type: ResponseType,
     text: String,
@@ -76,10 +78,9 @@ fn cmd_restaurants(state_mutex: &Mutex<state::State>, _args: &str) -> Result<Sla
         .join(", ");
 
     Ok(SlackResponse {
-        response_type: ResponseType::Ephemeral,
         text: format!("I know of these restaurants: {}",
             &restaurants),
-        unfurl_links: false,
+        ..Default::default()
     })
 }
 
@@ -95,11 +96,10 @@ fn cmd_openorder(state_mutex: &Mutex<state::State>, args: &str, base_url: &str) 
                 .join(", ");
 
             return Ok(SlackResponse {
-                response_type: ResponseType::Ephemeral,
                 text: format!("Usage: /ffs openorder RESTAURANT\n\
                     I know of these restaurants: {}",
                     &restaurants),
-                unfurl_links: false,
+                ..Default::default()
             })
         },
     };
@@ -113,7 +113,7 @@ fn cmd_openorder(state_mutex: &Mutex<state::State>, args: &str, base_url: &str) 
         text: format!(":bell: Now taking orders from the \
             <{}menu/{}|{} menu> :memo:",
             base_url, i32::from(menu.id), &restaurant.name),
-        unfurl_links: false,
+        ..Default::default()
     })
 }
 
@@ -125,7 +125,7 @@ fn cmd_closeorder(state_mutex: &Mutex<state::State>, _args: &str) -> Result<Slac
     Ok(SlackResponse {
         response_type: ResponseType::InChannel,
         text: format!("No longer taking orders"),
-        unfurl_links: false,
+        ..Default::default()
     })
 }
 
@@ -136,16 +136,31 @@ fn cmd_search(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackResp
     let open_order = state.demand_open_order()?;
 
     match state.query_menu(open_order.menu, &query)? {
-        Some(menu_item) => Ok(SlackResponse {
-            response_type: ResponseType::Ephemeral,
-            text: format!(":information_desk_person: That query matches the {} \
-                {} {}. {}", adjective(), noun(), &menu_item.number, &menu_item.name),
-            unfurl_links: false,
-        }),
-        None => Ok(SlackResponse {
-            response_type: ResponseType::Ephemeral,
+        ref items if items.len() > 1 => {
+            use std::fmt::Write;
+            let mut buf = String::new();
+
+            writeln!(&mut buf, ":information_desk_person: The best matches I found for {:?} are:\n", &args)?;
+            for item in items[..4].iter() {
+                writeln!(&mut buf, " - {}. {}", item.number, item.name)?;
+            }
+
+            Ok(SlackResponse {
+                text: buf,
+                ..Default::default()
+            })
+        },
+        ref mut items if items.len() == 1 => {
+            let menu_item = items.pop().expect("Guaranteed because of match arm");
+            Ok(SlackResponse {
+                text: format!(":information_desk_person: That query matches the {} \
+                    {} {}. {}", adjective(), noun(), &menu_item.number, &menu_item.name),
+                ..Default::default()
+            })
+        },
+        _ => Ok(SlackResponse {
             text: format!(":person_frowning: I found no matches for {:?}", &args),
-            unfurl_links: false,
+            ..Default::default()
         }),
     }
 }
@@ -156,7 +171,7 @@ fn cmd_order(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> 
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
 
-    match state.query_menu(open_order.menu, &query)? {
+    match state.query_menu(open_order.menu, &query)?.pop() {
         Some(menu_item) => {
             state.add_order_item(open_order.id, user_name, menu_item.id)?;
 
@@ -164,13 +179,12 @@ fn cmd_order(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> 
                 response_type: ResponseType::InChannel,
                 text: format!(":information_desk_person: {} the {} {} {}. {}",
                     affirm(), adjective(), noun(), &menu_item.number, &menu_item.name),
-                unfurl_links: false,
+                ..Default::default()
             })
         },
         None => Ok(SlackResponse {
-            response_type: ResponseType::Ephemeral,
             text: format!(":person_frowning: I found no matches for {:?}", &args),
-            unfurl_links: false,
+            ..Default::default()
         }),
     }
 }
@@ -194,9 +208,8 @@ fn cmd_summary(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackRe
     }
 
     Ok(SlackResponse {
-        response_type: ResponseType::Ephemeral,
         text: buf,
-        unfurl_links: false,
+        ..Default::default()
     })
 }
 
@@ -209,10 +222,9 @@ fn cmd_associate(state_mutex: &Mutex<state::State>, args: &str, user_name: &str)
             .join("\n    ");
 
         Ok(SlackResponse {
-            response_type: ResponseType::Ephemeral,
             text: format!("I have the following mappings from slack names to sharebill accounts:\n    {}",
                 &associations),
-            unfurl_links: false,
+            ..Default::default()
         })
     } else {
         let split = args.split_whitespace().collect::<Vec<_>>();
@@ -226,10 +238,9 @@ fn cmd_associate(state_mutex: &Mutex<state::State>, args: &str, user_name: &str)
         state.set_association(slack_name, sharebill_account)?;
 
         Ok(SlackResponse {
-            response_type: ResponseType::Ephemeral,
             text: format!("Billing orders by {} to account {}. Got it :+1:",
                 slack_name, sharebill_account),
-            unfurl_links: false,
+            ..Default::default()
         })
     }
 }
@@ -322,7 +333,7 @@ fn cmd_sharebill(state_mutex: &Mutex<state::State>, args: &str, user_name: &str,
     Ok(SlackResponse {
         response_type: ResponseType::InChannel,
         text: format!(":money_with_wings: Posted to <{}|Sharebill> and closed order :heavy_check_mark:", target_url),
-        unfurl_links: false,
+        ..Default::default()
     })
 }
 
@@ -332,31 +343,41 @@ fn cmd_overhead(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackRe
 
     if args.len() == 0 {
         Ok(SlackResponse {
-            response_type: ResponseType::Ephemeral,
             text: format!(
                 ":information_desk_person: Overhead is set to {}.{:02}",
                 open_order.overhead_in_cents / 100, open_order.overhead_in_cents % 100),
-            unfurl_links: false,
+            ..Default::default()
         })
     } else {
+        let old_overhead_in_cents = open_order.overhead_in_cents;
+
         let overhead = args.parse::<f64>()?;
-        let overhead_in_cents = (overhead * 100.0) as i32;
+        let overhead_in_cents = (overhead * 100.0).round() as i32;
 
         state.set_overhead(open_order.id, overhead_in_cents)?;
 
         Ok(SlackResponse {
             response_type: ResponseType::InChannel,
             text: format!(
-                ":information_desk_person: Overhead is now {}.{:02}",
+                ":information_desk_person: Overhead changed from {}.{:02} to {}.{:02}",
+                old_overhead_in_cents / 100, old_overhead_in_cents % 100,
                 overhead_in_cents / 100, overhead_in_cents % 100),
-            unfurl_links: false,
+            ..Default::default()
         })
     }
 }
 
+fn cmd_sudo(state_mutex: &Mutex<state::State>, args: &str, _user_name: &str, env: &web::Env) -> Result<SlackResponse, Error> {
+    let mut split = args.splitn(3, ' ');
+    let user_name = split.next().unwrap();
+    let cmd = split.next().ok_or(Error::MissingArgument("command"))?;
+    let args = split.next().unwrap_or("");
+
+    exec_cmd(state_mutex, cmd, args, user_name, env)
+}
+
 fn slack_core(
     maybe_slack_token: &Option<&str>,
-    maybe_sharebill_url: &Option<&str>,
     req: &mut Request,
 ) ->
     Result<SlackResponse, Error>
@@ -378,26 +399,28 @@ fn slack_core(
 
     if hashmap.contains_key("sslcheck") {
         return Ok(SlackResponse {
-            response_type: ResponseType::Ephemeral,
             text: String::new(),
-            unfurl_links: false,
+            ..Default::default()
         });
     }
 
     let ref state_mutex = req.extensions.get::<web::StateContainer>().unwrap().0;
     let ref env = req.extensions.get::<web::EnvContainer>().unwrap().0;
 
-    let text = &hashmap.get("text").unwrap()[0];
+    let text = &hashmap.get("text").ok_or(Error::MissingArgument("text"))?[0];
     let mut split = text.splitn(2, ' ');
     let cmd = split.next().unwrap();
     let args = split.next().unwrap_or("");
 
-    let user_name = &hashmap.get("user_name").unwrap()[0];
+    let user_name = &hashmap.get("user_name").ok_or(Error::MissingArgument("user_name"))?[0];
 
+    exec_cmd(&state_mutex, cmd, args, user_name, &env)
+}
+
+fn exec_cmd(state_mutex: &Mutex<state::State>, cmd: &str, args: &str, user_name: &str, env: &web::Env) -> Result<SlackResponse, Error> {
     match cmd {
         "help" =>
             Ok(SlackResponse {
-                response_type: ResponseType::Ephemeral,
                 text: "USAGE: /ffs command args...\n\
                     associate [SLACK_NAME] SHAREBILL_ACCOUNT\n    Associate the given slack name (defaults to your name) with the given sharebill account\n\
                     associate\n    Display all slack name-sharebill account associations\n\
@@ -409,9 +432,10 @@ fn slack_core(
                     restaurants\n    List known restaurants\n\
                     search QUERY\n    See what matches QUERY in the menu\n\
                     sharebill [CREDIT_ACCOUNT]\n    Post order to Sharebill\n\
+                    sudo USER args...\n    Perform the command specified in args as USER\n\
                     summary\n    See the current order\n\
                     ".to_owned(),
-                unfurl_links: false,
+                ..Default::default()
             }),
         "associate" => cmd_associate(&state_mutex, args, user_name),
         "closeorder" => cmd_closeorder(&state_mutex, args),
@@ -421,20 +445,20 @@ fn slack_core(
         "restaurants" => cmd_restaurants(&state_mutex, args),
         "search" => cmd_search(&state_mutex, args),
         "sharebill" => cmd_sharebill(&state_mutex, args, user_name,
-            maybe_sharebill_url.ok_or(Error::MissingConfig("web.sharebill_url"))?),
+            env.maybe_sharebill_url.as_ref().ok_or(Error::MissingConfig("web.sharebill_url"))?),
+        "sudo" => cmd_sudo(&state_mutex, args, user_name, env),
         "summary" => cmd_summary(&state_mutex, args),
         _ =>
             Ok(SlackResponse {
-                response_type: ResponseType::Ephemeral,
                 text: format!(":confused: Oh man! I don't understand /ffs {} {}\n\
                     Try /ffs help", &cmd, &args),
-                unfurl_links: false,
+                ..Default::default()
             }),
     }
 }
 
-pub fn slack(slack_token: &Option<&str>, sharebill_url: &Option<&str>, req: &mut Request) -> IronResult<Response> {
-    match slack_core(slack_token, sharebill_url, req) {
+pub fn slack(slack_token: &Option<&str>, req: &mut Request) -> IronResult<Response> {
+    match slack_core(slack_token, req) {
         Ok(response) => Ok(Response::with((
             status::Ok,
             serde_json::to_string(&response).unwrap(),
@@ -443,9 +467,8 @@ pub fn slack(slack_token: &Option<&str>, sharebill_url: &Option<&str>, req: &mut
         Err(err) => Ok(Response::with((
             status::InternalServerError,
             serde_json::to_string(&SlackResponse {
-                response_type: ResponseType::Ephemeral,
                 text: format!(":no_good: {:?}", &err),
-                unfurl_links: false,
+                ..Default::default()
             }).unwrap(),
             Header(ContentType::json()),
         )))

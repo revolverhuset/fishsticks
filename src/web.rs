@@ -67,6 +67,7 @@ impl BeforeMiddleware for StateContainer {
 
 pub struct Env {
     pub base_url: String,
+    pub maybe_sharebill_url: Option<String>,
 }
 
 #[derive(Clone)]
@@ -221,7 +222,6 @@ pub fn run(
         move |req: &mut Request| {
             slack::slack(
                 &slack_token.as_ref().map(String::as_ref),
-                &sharebill_url.as_ref().map(String::as_ref),
                 req
             )
         },
@@ -229,7 +229,10 @@ pub fn run(
 
     let mut chain = Chain::new(router);
     chain.link_before(StateContainer(Arc::new(Mutex::new(state))));
-    chain.link_before(EnvContainer(Arc::new(Env{ base_url: base_url })));
+    chain.link_before(EnvContainer(Arc::new(Env {
+        base_url: base_url,
+        maybe_sharebill_url: sharebill_url,
+    })));
 
     let listening = Iron::new(chain).http(bind)?;
     println!("Listening to {:?}", &listening.socket);
