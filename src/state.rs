@@ -59,6 +59,10 @@ fn timestamp() -> i32 {
     time::now().to_timespec().sec as i32
 }
 
+fn distance(_: &str, _: &str) -> i32 {
+    0
+}
+
 impl State {
     pub fn new(db_connection: diesel::sqlite::SqliteConnection) -> State {
         State {
@@ -236,21 +240,25 @@ impl State {
         Ok(())
     }
 
-    pub fn query_menu(&self, menu_id: MenuId, query: &Query) -> Result<Option<MenuItem>, Error> {
+    pub fn query_menu(&self, menu_id: MenuId, query: &Query) -> Result<Vec<MenuItem>, Error> {
         use schema::menu_items::dsl::*;
 
-        Ok(match *query {
+        let all_items = menu_items
+            .filter(menu.eq(i32::from(menu_id)));
+
+        match *query {
             Query::ExactInteger(integer) =>
-                menu_items.filter(number.eq(integer)).into_boxed(),
-            Query::FuzzyString(string) =>
-                menu_items
-                    .filter(name.eq(string))
-                    .into_boxed(),
+                Ok(all_items
+                    .filter(number.eq(integer))
+                    .limit(1)
+                    .load::<MenuItem>(&self.db_connection)?
+                ),
+            Query::FuzzyString(string) => {
+                let mut items = all_items.load::<MenuItem>(&self.db_connection)?;
+                items.sort_by_key(|x| distance(&string, &x.name));
+                Ok(items)
+            }
         }
-            .filter(menu.eq(i32::from(menu_id)))
-            .limit(1)
-            .load::<MenuItem>(&self.db_connection)?
-            .pop())
     }
 
     pub fn add_order_item(&self, order: OrderId, person_name: &str, menu_item: MenuItemId) -> Result<(), Error> {

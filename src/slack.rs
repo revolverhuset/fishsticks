@@ -136,13 +136,31 @@ fn cmd_search(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackResp
     let open_order = state.demand_open_order()?;
 
     match state.query_menu(open_order.menu, &query)? {
-        Some(menu_item) => Ok(SlackResponse {
-            response_type: ResponseType::Ephemeral,
-            text: format!(":information_desk_person: That query matches the {} \
-                {} {}. {}", adjective(), noun(), &menu_item.number, &menu_item.name),
-            unfurl_links: false,
-        }),
-        None => Ok(SlackResponse {
+        ref items if items.len() > 1 => {
+            use std::fmt::Write;
+            let mut buf = String::new();
+
+            writeln!(&mut buf, ":information_desk_person: The best matches I found for that query are:\n")?;
+            for item in items[..4].iter() {
+                writeln!(&mut buf, " - {}. {}", item.number, item.name)?;
+            }
+
+            Ok(SlackResponse {
+                response_type: ResponseType::Ephemeral,
+                text: buf,
+                unfurl_links: false,
+            })
+        },
+        ref mut items if items.len() == 1 => {
+            let menu_item = items.pop().expect("Guaranteed because of match arm");
+            Ok(SlackResponse {
+                response_type: ResponseType::Ephemeral,
+                text: format!(":information_desk_person: That query matches the {} \
+                    {} {}. {}", adjective(), noun(), &menu_item.number, &menu_item.name),
+                unfurl_links: false,
+            })
+        },
+        _ => Ok(SlackResponse {
             response_type: ResponseType::Ephemeral,
             text: format!(":person_frowning: I found no matches for {:?}", &args),
             unfurl_links: false,
@@ -156,7 +174,7 @@ fn cmd_order(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> 
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
 
-    match state.query_menu(open_order.menu, &query)? {
+    match state.query_menu(open_order.menu, &query)?.pop() {
         Some(menu_item) => {
             state.add_order_item(open_order.id, user_name, menu_item.id)?;
 
