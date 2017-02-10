@@ -45,23 +45,18 @@ impl<T> std::convert::From<std::sync::PoisonError<T>> for Error {
     }
 }
 
+#[derive(Serialize)]
 enum ResponseType {
+    #[serde(rename = "ephemeral")]
     Ephemeral,
+
+    #[serde(rename = "in_channel")]
     InChannel,
 }
 
 impl Default for ResponseType {
     fn default() -> ResponseType {
         ResponseType::Ephemeral
-    }
-}
-
-impl serde::Serialize for ResponseType {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(match *self {
-            ResponseType::Ephemeral => "ephemeral",
-            ResponseType::InChannel => "in_channel",
-        })
     }
 }
 
