@@ -36,6 +36,7 @@ quick_error! {
         MissingConfig(config_path: &'static str)
         FormatError(err: std::fmt::Error) { from() }
         ReqwestError(err: reqwest::Error) { from() }
+        MissingArgument(arg: &'static str)
     }
 }
 
@@ -398,12 +399,12 @@ fn slack_core(
     let ref state_mutex = req.extensions.get::<web::StateContainer>().unwrap().0;
     let ref env = req.extensions.get::<web::EnvContainer>().unwrap().0;
 
-    let text = &hashmap.get("text").unwrap()[0];
+    let text = &hashmap.get("text").ok_or(Error::MissingArgument("text"))?[0];
     let mut split = text.splitn(2, ' ');
     let cmd = split.next().unwrap();
     let args = split.next().unwrap_or("");
 
-    let user_name = &hashmap.get("user_name").unwrap()[0];
+    let user_name = &hashmap.get("user_name").ok_or(Error::MissingArgument("user_name"))?[0];
 
     match cmd {
         "help" =>
