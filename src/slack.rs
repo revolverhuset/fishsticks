@@ -140,7 +140,7 @@ fn cmd_search(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackResp
             use std::fmt::Write;
             let mut buf = String::new();
 
-            writeln!(&mut buf, ":information_desk_person: The best matches I found for that query are:\n")?;
+            writeln!(&mut buf, ":information_desk_person: The best matches I found for {:?} are:\n", &args)?;
             for item in items[..4].iter() {
                 writeln!(&mut buf, " - {}. {}", item.number, item.name)?;
             }
