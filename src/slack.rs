@@ -171,7 +171,7 @@ fn cmd_order(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> 
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
 
-    match state.query_menu(open_order.menu, &query)?.pop() {
+    match state.query_menu(open_order.menu, &query)?.first() {
         Some(menu_item) => {
             state.add_order_item(open_order.id, user_name, menu_item.id)?;
 
