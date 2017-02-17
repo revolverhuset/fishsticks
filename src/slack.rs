@@ -437,6 +437,7 @@ fn exec_cmd(state_mutex: &Mutex<state::State>, cmd: &str, args: &str, user_name:
                 text: "USAGE: /ffs command args...\n\
                     associate [SLACK_NAME] SHAREBILL_ACCOUNT\n    Associate the given slack name (defaults to your name) with the given sharebill account\n\
                     associate\n    Display all slack name-sharebill account associations\n\
+                    clear\n    Withdraw all your current orders\n\
                     closeorder\n    Close the current order\n\
                     help\n    This help\n\
                     openorder RESTAURANT\n    Start a new order from the given restaurant\n\
