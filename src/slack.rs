@@ -189,6 +189,18 @@ fn cmd_order(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> 
     }
 }
 
+fn cmd_clear(state_mutex: &Mutex<state::State>, _args: &str, user_name: &str) -> Result<SlackResponse, Error> {
+    let state = state_mutex.lock()?;
+    let open_order = state.demand_open_order()?;
+
+    state.clear_orders_for_person(open_order.id, user_name)?;
+
+    Ok(SlackResponse {
+        text: format!(":person_frowning: So that's how it's going to be!"),
+        ..Default::default()
+    })
+}
+
 fn cmd_summary(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
@@ -438,6 +450,7 @@ fn exec_cmd(state_mutex: &Mutex<state::State>, cmd: &str, args: &str, user_name:
                 ..Default::default()
             }),
         "associate" => cmd_associate(&state_mutex, args, user_name),
+        "clear" => cmd_clear(&state_mutex, args, user_name),
         "closeorder" => cmd_closeorder(&state_mutex, args),
         "openorder" => cmd_openorder(&state_mutex, args, &env.base_url),
         "order" => cmd_order(&state_mutex, args, user_name),

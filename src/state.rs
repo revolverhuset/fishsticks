@@ -285,6 +285,19 @@ impl State {
         Ok(())
     }
 
+    pub fn clear_orders_for_person(&self, order: OrderId, person_name: &str) -> Result<(), Error> {
+        use schema::order_items;
+
+        diesel::delete(
+            order_items::table
+                .filter(order_items::order.eq(i32::from(order)))
+                .filter(order_items::person_name.eq(person_name))
+        )
+            .execute(&self.db_connection)?;
+
+        Ok(())
+    }
+
     pub fn items_in_order(&self, order_id: OrderId) -> Result<Vec<(MenuItem, OrderItem)>, Error> {
         use schema::order_items::dsl::*;
         use schema::menu_items;
