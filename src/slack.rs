@@ -196,6 +196,7 @@ fn cmd_clear(state_mutex: &Mutex<state::State>, _args: &str, user_name: &str) ->
     state.clear_orders_for_person(open_order.id, user_name)?;
 
     Ok(SlackResponse {
+        response_type: ResponseType::InChannel,
         text: format!(":person_frowning: So that's how it's going to be!"),
         ..Default::default()
     })
