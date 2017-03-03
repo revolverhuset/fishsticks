@@ -61,7 +61,7 @@ fn timestamp() -> i32 {
 }
 
 fn distance(a: &str, b: &str) -> usize {
-    strsim::damerau_levenshtein(a, b)
+    strsim::osa_distance(a, b)
 }
 
 impl State {
