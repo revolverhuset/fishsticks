@@ -61,7 +61,7 @@ fn timestamp() -> i32 {
 }
 
 fn distance(a: &str, b: &str) -> usize {
-    strsim::damerau_levenshtein(a, b)
+    ((1.-strsim::jaro_winkler(&a.to_lowercase(), &b.to_lowercase())) * 1000.) as usize
 }
 
 impl State {
