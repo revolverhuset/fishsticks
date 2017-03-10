@@ -15,7 +15,7 @@ panic = "abort"
 [build-dependencies.diesel]
 default-features = false
 features = ["sqlite"]
-version = "0.10.0"
+version = "0.11.4"
 
 [dependencies]
 bart = "0.1.0"
@@ -39,12 +39,12 @@ urlencoded = "0.5"
 [dependencies.diesel]
 default-features = false
 features = ["sqlite"]
-version = "0.10.0"
+version = "0.11.4"
 
 [dependencies.diesel_codegen]
 default-features = false
 features = ["sqlite"]
-version = "0.10.0"
+version = "0.11.0"
 
 [dependencies.sharebill]
 path = "libs/sharebill"

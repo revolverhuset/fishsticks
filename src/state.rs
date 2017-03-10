@@ -4,7 +4,6 @@ extern crate time;
 use diesel;
 use ingest;
 use models::*;
-use std;
 use takedown;
 
 use diesel::prelude::*;
@@ -19,21 +18,6 @@ quick_error! {
         CouldntCreateTransaction(err: diesel::result::Error) { }
         NoOpenOrder
         NotFound
-    }
-}
-
-impl<T> std::convert::From<diesel::result::TransactionError<T>> for Error
-    where Error: std::convert::From<T>
-{
-    fn from(err: diesel::result::TransactionError<T>) -> Error {
-        match err {
-            diesel::result::TransactionError::CouldntCreateTransaction(err) => {
-                Error::CouldntCreateTransaction(err)
-            }
-            diesel::result::TransactionError::UserReturnedError(err) => {
-                err.into()
-            }
-        }
     }
 }
 
