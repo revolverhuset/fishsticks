@@ -20,6 +20,8 @@ use self::iron::headers::ContentType;
 use self::iron::modifiers::Header;
 use self::itertools::*;
 use self::urlencoded::UrlEncodedBody;
+use sharebill::Rational;
+use std::collections::HashMap;
 
 quick_error! {
     #[derive(Debug)]
@@ -258,29 +260,15 @@ fn cmd_associate(state_mutex: &Mutex<state::State>, args: &str, user_name: &str)
     }
 }
 
-fn cmd_sharebill(state_mutex: &Mutex<state::State>, args: &str, user_name: &str, sharebill_url: &str) -> Result<SlackResponse, Error> {
-    use std::collections::HashMap;
-    use sharebill::Rational;
+fn generate_bill(state: &state::State) -> Result<HashMap<String, Rational>, Error> {
     use self::num::Zero;
 
-    let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
-
-    let description = format!("{}",
-        state.restaurant(
-            state.menu_object(open_order.menu)?
-                .ok_or(Error::NotFound)?
-                .restaurant
-        )?
-        .ok_or(Error::NotFound)?
-        .name
-    );
+    let items = state.items_in_order(open_order.id)?;
 
     let associations = state.all_associations()?.into_iter()
         .map(|x| (x.slack_name, x.sharebill_account))
         .collect::<HashMap<_, _>>();
-
-    let items = state.items_in_order(open_order.id)?;
 
     let persons = Rational::from(items.iter()
         .group_by(|&&(_, ref order_item)| order_item.person_name.clone()).into_iter()
@@ -308,6 +296,32 @@ fn cmd_sharebill(state_mutex: &Mutex<state::State>, args: &str, user_name: &str,
         let entry = debits.entry(account.clone()).or_insert_with(Rational::zero);
         *entry = &*entry + value;
     }
+
+    Ok(debits)
+}
+
+fn cmd_sharebill(state_mutex: &Mutex<state::State>, args: &str, user_name: &str, sharebill_url: &str) -> Result<SlackResponse, Error> {
+    use std::collections::HashMap;
+    use self::num::Zero;
+
+    let state = state_mutex.lock()?;
+    let open_order = state.demand_open_order()?;
+
+    let description = format!("{}",
+        state.restaurant(
+            state.menu_object(open_order.menu)?
+                .ok_or(Error::NotFound)?
+                .restaurant
+        )?
+        .ok_or(Error::NotFound)?
+        .name
+    );
+
+    let associations = state.all_associations()?.into_iter()
+        .map(|x| (x.slack_name, x.sharebill_account))
+        .collect::<HashMap<_, _>>();
+
+    let debits = generate_bill(&state)?;
 
     let credit_account = match args.len() {
         0 => associations.get(user_name).map(|x| x as &str),
@@ -346,6 +360,53 @@ fn cmd_sharebill(state_mutex: &Mutex<state::State>, args: &str, user_name: &str,
     Ok(SlackResponse {
         response_type: ResponseType::InChannel,
         text: format!(":money_with_wings: Posted to <{}|Sharebill> and closed order :heavy_check_mark:", target_url),
+        ..Default::default()
+    })
+}
+
+fn cmd_suggest(state_mutex: &Mutex<state::State>, _args: &str, sharebill_url: &str) -> Result<SlackResponse, Error> {
+    #[derive(Deserialize, Debug)]
+    struct Row {
+        pub key: String,
+        pub value: Rational,
+    }
+
+    #[derive(Deserialize)]
+    struct Balances {
+        pub rows: Vec<Row>
+    }
+
+    let state = state_mutex.lock()?;
+    let debits = generate_bill(&state)?;
+
+    let mut res = reqwest::get(&format!("{}balances", &sharebill_url))?;
+    if !res.status().is_success() {
+        return Err(Error::UnexpectedStatus(res.status().clone()));
+    }
+    let balances: Balances = res.json()?;
+
+    let mut balances = balances.rows.into_iter()
+        .filter(|row| debits.contains_key(&row.key))
+        .map(|row| {
+            let this_meal = debits.get(&row.key).expect("Guaranteed by filter on the line above");
+            let new_balance = &row.value - this_meal;
+            (row.key, row.value, new_balance)
+        })
+        .collect::<Vec<_>>();
+
+    balances.sort_by(|a, b| a.2.cmp(&b.2));
+
+    use std::fmt::Write;
+    let mut buf = String::new();
+
+    writeln!(&mut buf, ":information_desk_person: The poorest people on sharebill are:")?;
+    for (account_name, old_balance, new_balance) in balances.into_iter().take(3) {
+        writeln!(&mut buf, " - {} ({}, projected new balance: {})", account_name, old_balance.0.to_integer(), new_balance.0.to_integer())?;
+    }
+
+    Ok(SlackResponse {
+        response_type: ResponseType::InChannel,
+        text: buf,
         ..Default::default()
     })
 }
@@ -445,8 +506,9 @@ fn exec_cmd(state_mutex: &Mutex<state::State>, cmd: &str, args: &str, user_name:
                     overhead [VALUE]\n    Get/set overhead (delivery cost, gratuity, etc) for current order\n\
                     restaurants\n    List known restaurants\n\
                     search QUERY\n    See what matches QUERY in the menu\n\
-                    sharebill [CREDIT_ACCOUNT]\n    Post order to Sharebill\n\
+                    sharebill [CREDIT_ACCOUNT]\n    Post order to Sharebill. CREDIT_ACCOUNT defaults to your account\n\
                     sudo USER args...\n    Perform the command specified in args as USER\n\
+                    suggest\n    Suggest who should pay for the order based on Sharebill balance\n\
                     summary\n    See the current order\n\
                     ".to_owned(),
                 ..Default::default()
@@ -462,6 +524,8 @@ fn exec_cmd(state_mutex: &Mutex<state::State>, cmd: &str, args: &str, user_name:
         "sharebill" => cmd_sharebill(&state_mutex, args, user_name,
             env.maybe_sharebill_url.as_ref().ok_or(Error::MissingConfig("web.sharebill_url"))?),
         "sudo" => cmd_sudo(&state_mutex, args, user_name, env),
+        "suggest" => cmd_suggest(&state_mutex, args,
+            env.maybe_sharebill_url.as_ref().ok_or(Error::MissingConfig("web.sharebill_url"))?),
         "summary" => cmd_summary(&state_mutex, args),
         _ =>
             Ok(SlackResponse {

@@ -15,8 +15,8 @@ quick_error! {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct Rational(num::BigRational);
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct Rational(pub num::BigRational);
 
 impl Rational {
     pub fn from_cents(cents: i32) -> Rational {
@@ -83,6 +83,29 @@ impl serde::Serialize for Rational {
     }
 }
 
+struct RationalVisitor;
+impl serde::de::Visitor for RationalVisitor {
+    type Value = Rational;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a string for a rational number, matching ^((-)?(\\d+)( (\\d+/\\d+))?|(-?\\d+/\\d+))$")
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Rational, E>
+        where E: serde::de::Error
+    {
+        Rational::from_str(value).map_err(|_| E::custom("Nope!"))
+    }
+}
+
+impl serde::Deserialize for Rational {
+    fn deserialize<D>(de: D) -> Result<Self, D::Error>
+        where D: serde::Deserializer
+    {
+        de.deserialize_str(RationalVisitor)
+    }
+}
+
 impl<T> From<T> for Rational
     where num::BigInt : From<T>
 {
@@ -126,6 +149,13 @@ impl<'a, 'b> ops::Add<&'a Rational> for &'b Rational {
     type Output = Rational;
     fn add(self, other: &Rational) -> Rational {
         Rational(&self.0 + &other.0)
+    }
+}
+
+impl<'a, 'b> ops::Sub<&'a Rational> for &'b Rational {
+    type Output = Rational;
+    fn sub(self, other: &Rational) -> Rational {
+        Rational(&self.0 - &other.0)
     }
 }
 
