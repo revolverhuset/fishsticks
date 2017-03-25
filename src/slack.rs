@@ -482,6 +482,62 @@ fn cmd_sudo(cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
     )
 }
 
+fn cmd_help(_cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
+    Ok(SlackResponse {
+        text: "USAGE: /ffs command args...\n\
+            associate [SLACK_NAME] SHAREBILL_ACCOUNT\n    Associate the given slack name (defaults to your name) with the given sharebill account\n\
+            associate\n    Display all slack name-sharebill account associations\n\
+            clear\n    Withdraw all your current orders\n\
+            closeorder\n    Close the current order\n\
+            help\n    This help\n\
+            openorder RESTAURANT\n    Start a new order from the given restaurant\n\
+            order QUERY\n    Order whatever matches QUERY in the menu\n\
+            overhead [VALUE]\n    Get/set overhead (delivery cost, gratuity, etc) for current order\n\
+            restaurants\n    List known restaurants\n\
+            search QUERY\n    See what matches QUERY in the menu\n\
+            sharebill [CREDIT_ACCOUNT]\n    Post order to Sharebill. CREDIT_ACCOUNT defaults to your account\n\
+            sudo USER args...\n    Perform the command specified in args as USER\n\
+            suggest\n    Suggest who should pay for the order based on Sharebill balance\n\
+            summary\n    See the current order\n\
+            ".to_owned(),
+        ..Default::default()
+    })
+}
+
+type CommandHandler = Box<Fn(&CommandContext) -> Result<SlackResponse, Error> + Sync>;
+
+lazy_static! {
+    static ref COMMAND_MAP: HashMap<&'static str, CommandHandler> = {
+        let mut m: HashMap<&'static str, CommandHandler> = HashMap::new();
+        m.insert("associate",   Box::new(cmd_associate));
+        m.insert("clear",       Box::new(cmd_clear));
+        m.insert("closeorder",  Box::new(cmd_closeorder));
+        m.insert("help",        Box::new(cmd_help));
+        m.insert("openorder",   Box::new(cmd_openorder));
+        m.insert("order",       Box::new(cmd_order));
+        m.insert("overhead",    Box::new(cmd_overhead));
+        m.insert("restaurants", Box::new(cmd_restaurants));
+        m.insert("search",      Box::new(cmd_search));
+        m.insert("sharebill",   Box::new(cmd_sharebill));
+        m.insert("sudo",        Box::new(cmd_sudo));
+        m.insert("suggest",     Box::new(cmd_suggest));
+        m.insert("summary",     Box::new(cmd_summary));
+        m
+    };
+}
+
+fn exec_cmd(cmd: &str, cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
+    match COMMAND_MAP.get(cmd) {
+        Some(cmd) => cmd(cmd_ctx),
+        _ =>
+            Ok(SlackResponse {
+                text: format!(":confused: Oh man! I don't understand /ffs {} {}\n\
+                    Try /ffs help", &cmd, &cmd_ctx.args),
+                ..Default::default()
+            })
+    }
+}
+
 fn slack_core(
     maybe_slack_token: &Option<&str>,
     req: &mut Request,
@@ -529,55 +585,6 @@ fn slack_core(
             env: &env
         }
     )
-}
-
-fn cmd_help(_cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
-    Ok(SlackResponse {
-        text: "USAGE: /ffs command args...\n\
-            associate [SLACK_NAME] SHAREBILL_ACCOUNT\n    Associate the given slack name (defaults to your name) with the given sharebill account\n\
-            associate\n    Display all slack name-sharebill account associations\n\
-            clear\n    Withdraw all your current orders\n\
-            closeorder\n    Close the current order\n\
-            help\n    This help\n\
-            openorder RESTAURANT\n    Start a new order from the given restaurant\n\
-            order QUERY\n    Order whatever matches QUERY in the menu\n\
-            overhead [VALUE]\n    Get/set overhead (delivery cost, gratuity, etc) for current order\n\
-            restaurants\n    List known restaurants\n\
-            search QUERY\n    See what matches QUERY in the menu\n\
-            sharebill [CREDIT_ACCOUNT]\n    Post order to Sharebill. CREDIT_ACCOUNT defaults to your account\n\
-            sudo USER args...\n    Perform the command specified in args as USER\n\
-            suggest\n    Suggest who should pay for the order based on Sharebill balance\n\
-            summary\n    See the current order\n\
-            ".to_owned(),
-        ..Default::default()
-    })
-}
-
-fn exec_cmd(cmd: &str, cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
-    let mut fn_map: HashMap<&str, Box<Fn(&CommandContext) -> Result<SlackResponse, Error>>> = HashMap::new();
-    fn_map.insert("associate",   Box::new(cmd_associate));
-    fn_map.insert("clear",       Box::new(cmd_clear));
-    fn_map.insert("closeorder",  Box::new(cmd_closeorder));
-    fn_map.insert("help",        Box::new(cmd_help));
-    fn_map.insert("openorder",   Box::new(cmd_openorder));
-    fn_map.insert("order",       Box::new(cmd_order));
-    fn_map.insert("overhead",    Box::new(cmd_overhead));
-    fn_map.insert("restaurants", Box::new(cmd_restaurants));
-    fn_map.insert("search",      Box::new(cmd_search));
-    fn_map.insert("sharebill",   Box::new(cmd_sharebill));
-    fn_map.insert("sudo",        Box::new(cmd_sudo));
-    fn_map.insert("suggest",     Box::new(cmd_suggest));
-    fn_map.insert("summary",     Box::new(cmd_summary));
-
-    match fn_map.get(cmd) {
-        Some(cmd) => cmd(cmd_ctx),
-        _ =>
-            Ok(SlackResponse {
-                text: format!(":confused: Oh man! I don't understand /ffs {} {}\n\
-                    Try /ffs help", &cmd, &cmd_ctx.args),
-                ..Default::default()
-            })
-    }
 }
 
 pub fn slack(slack_token: &Option<&str>, req: &mut Request) -> IronResult<Response> {

@@ -4,12 +4,6 @@ build = "migrate.rs"
 name = "fishsticks"
 version = "0.1.0"
 
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-panic = "abort"
-
 [build-dependencies]
 
 [build-dependencies.diesel]
@@ -24,6 +18,7 @@ bodyparser = "0.5"
 getopts = "^0.2.14"
 iron = "^0.5.1"
 itertools = "0.5.6"
+lazy_static = "0.2.2"
 num = "0.1.36"
 quick-error = "^1.1.0"
 rand = "0.3.14"
@@ -52,3 +47,11 @@ path = "libs/sharebill"
 [dependencies.uuid]
 features = ["use_std", "v4"]
 version = "^0.2"
+
+[profile]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

@@ -1,6 +1,7 @@
 #[macro_use] extern crate bart_derive;
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate diesel_codegen;
+#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate serde_derive;
 extern crate sharebill;
