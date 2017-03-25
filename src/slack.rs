@@ -72,7 +72,14 @@ struct SlackResponse {
 
 use std::sync::Mutex;
 
-fn cmd_restaurants(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackResponse, Error> {
+struct CommandContext<'a, 'b, 'c, 'd> {
+    state_mutex: &'a Mutex<state::State>,
+    args: &'b str,
+    user_name: &'c str,
+    env: &'d web::Env
+}
+
+fn cmd_restaurants(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
     let restaurants = state.restaurants()?.into_iter()
         .map(|x| x.name)
@@ -86,7 +93,7 @@ fn cmd_restaurants(state_mutex: &Mutex<state::State>, _args: &str) -> Result<Sla
     })
 }
 
-fn cmd_openorder(state_mutex: &Mutex<state::State>, args: &str, base_url: &str) -> Result<SlackResponse, Error> {
+fn cmd_openorder(&CommandContext { state_mutex, args, env: &web::Env { ref base_url, .. }, .. }: &CommandContext) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
 
     let restaurant = match state.restaurant_by_name(args)? {
@@ -119,7 +126,7 @@ fn cmd_openorder(state_mutex: &Mutex<state::State>, args: &str, base_url: &str) 
     })
 }
 
-fn cmd_closeorder(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackResponse, Error> {
+fn cmd_closeorder(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
 
     state.close_current_order()?;
@@ -131,7 +138,7 @@ fn cmd_closeorder(state_mutex: &Mutex<state::State>, _args: &str) -> Result<Slac
     })
 }
 
-fn cmd_search(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackResponse, Error> {
+fn cmd_search(&CommandContext { state_mutex, args, .. }: &CommandContext) -> Result<SlackResponse, Error> {
     let query = state::Query::interpret_string(&args);
 
     let state = state_mutex.lock()?;
@@ -167,7 +174,7 @@ fn cmd_search(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackResp
     }
 }
 
-fn cmd_order(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> Result<SlackResponse, Error> {
+fn cmd_order(&CommandContext { state_mutex, args, user_name, .. }: &CommandContext) -> Result<SlackResponse, Error> {
     let query = state::Query::interpret_string(&args);
 
     let state = state_mutex.lock()?;
@@ -191,7 +198,7 @@ fn cmd_order(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> 
     }
 }
 
-fn cmd_clear(state_mutex: &Mutex<state::State>, _args: &str, user_name: &str) -> Result<SlackResponse, Error> {
+fn cmd_clear(&CommandContext { state_mutex, user_name, .. }: &CommandContext) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
 
@@ -204,7 +211,7 @@ fn cmd_clear(state_mutex: &Mutex<state::State>, _args: &str, user_name: &str) ->
     })
 }
 
-fn cmd_summary(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackResponse, Error> {
+fn cmd_summary(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
     let items = state.items_in_order(open_order.id)?;
@@ -228,7 +235,7 @@ fn cmd_summary(state_mutex: &Mutex<state::State>, _args: &str) -> Result<SlackRe
     })
 }
 
-fn cmd_associate(state_mutex: &Mutex<state::State>, args: &str, user_name: &str) -> Result<SlackResponse, Error> {
+fn cmd_associate(&CommandContext { state_mutex, args, user_name, .. }: &CommandContext) -> Result<SlackResponse, Error> {
     if args.len() == 0 {
         let state = state_mutex.lock()?;
         let associations = state.all_associations()?.into_iter()
@@ -300,9 +307,18 @@ fn generate_bill(state: &state::State) -> Result<HashMap<String, Rational>, Erro
     Ok(debits)
 }
 
-fn cmd_sharebill(state_mutex: &Mutex<state::State>, args: &str, user_name: &str, sharebill_url: &str) -> Result<SlackResponse, Error> {
+fn cmd_sharebill(
+    &CommandContext {
+        state_mutex, args, user_name,
+        env: &web::Env { ref maybe_sharebill_url, .. },
+        ..
+    }: &CommandContext
+) -> Result<SlackResponse, Error>
+{
     use std::collections::HashMap;
     use self::num::Zero;
+
+    let sharebill_url = maybe_sharebill_url.as_ref().ok_or(Error::MissingConfig("web.sharebill_url"))?;
 
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
@@ -364,7 +380,14 @@ fn cmd_sharebill(state_mutex: &Mutex<state::State>, args: &str, user_name: &str,
     })
 }
 
-fn cmd_suggest(state_mutex: &Mutex<state::State>, _args: &str, sharebill_url: &str) -> Result<SlackResponse, Error> {
+fn cmd_suggest(
+    &CommandContext {
+        state_mutex,
+        env: &web::Env { ref maybe_sharebill_url, .. },
+        ..
+    }: &CommandContext
+) -> Result<SlackResponse, Error>
+{
     #[derive(Deserialize, Debug)]
     struct Row {
         pub key: String,
@@ -375,6 +398,8 @@ fn cmd_suggest(state_mutex: &Mutex<state::State>, _args: &str, sharebill_url: &s
     struct Balances {
         pub rows: Vec<Row>
     }
+
+    let sharebill_url = maybe_sharebill_url.as_ref().ok_or(Error::MissingConfig("web.sharebill_url"))?;
 
     let state = state_mutex.lock()?;
     let debits = generate_bill(&state)?;
@@ -411,7 +436,7 @@ fn cmd_suggest(state_mutex: &Mutex<state::State>, _args: &str, sharebill_url: &s
     })
 }
 
-fn cmd_overhead(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackResponse, Error> {
+fn cmd_overhead(&CommandContext { state_mutex, args, .. }: &CommandContext) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
 
@@ -441,13 +466,20 @@ fn cmd_overhead(state_mutex: &Mutex<state::State>, args: &str) -> Result<SlackRe
     }
 }
 
-fn cmd_sudo(state_mutex: &Mutex<state::State>, args: &str, _user_name: &str, env: &web::Env) -> Result<SlackResponse, Error> {
-    let mut split = args.splitn(3, ' ');
+fn cmd_sudo(cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
+    let mut split = cmd_ctx.args.splitn(3, ' ');
     let user_name = split.next().unwrap();
     let cmd = split.next().ok_or(Error::MissingArgument("command"))?;
     let args = split.next().unwrap_or("");
 
-    exec_cmd(state_mutex, cmd, args, user_name, env)
+    exec_cmd(
+        cmd,
+        &CommandContext {
+            user_name: user_name,
+            args: args,
+            ..*cmd_ctx
+        }
+    )
 }
 
 fn slack_core(
@@ -488,10 +520,18 @@ fn slack_core(
 
     let user_name = &hashmap.get("user_name").ok_or(Error::MissingArgument("user_name"))?[0];
 
-    exec_cmd(&state_mutex, cmd, args, user_name, &env)
+    exec_cmd(
+        cmd,
+        &CommandContext {
+            state_mutex: &state_mutex,
+            args: args,
+            user_name: user_name,
+            env: &env
+        }
+    )
 }
 
-fn exec_cmd(state_mutex: &Mutex<state::State>, cmd: &str, args: &str, user_name: &str, env: &web::Env) -> Result<SlackResponse, Error> {
+fn exec_cmd(cmd: &str, cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
     match cmd {
         "help" =>
             Ok(SlackResponse {
@@ -513,24 +553,22 @@ fn exec_cmd(state_mutex: &Mutex<state::State>, cmd: &str, args: &str, user_name:
                     ".to_owned(),
                 ..Default::default()
             }),
-        "associate" => cmd_associate(&state_mutex, args, user_name),
-        "clear" => cmd_clear(&state_mutex, args, user_name),
-        "closeorder" => cmd_closeorder(&state_mutex, args),
-        "openorder" => cmd_openorder(&state_mutex, args, &env.base_url),
-        "order" => cmd_order(&state_mutex, args, user_name),
-        "overhead" => cmd_overhead(&state_mutex, args),
-        "restaurants" => cmd_restaurants(&state_mutex, args),
-        "search" => cmd_search(&state_mutex, args),
-        "sharebill" => cmd_sharebill(&state_mutex, args, user_name,
-            env.maybe_sharebill_url.as_ref().ok_or(Error::MissingConfig("web.sharebill_url"))?),
-        "sudo" => cmd_sudo(&state_mutex, args, user_name, env),
-        "suggest" => cmd_suggest(&state_mutex, args,
-            env.maybe_sharebill_url.as_ref().ok_or(Error::MissingConfig("web.sharebill_url"))?),
-        "summary" => cmd_summary(&state_mutex, args),
+        "associate" => cmd_associate(cmd_ctx),
+        "clear" => cmd_clear(cmd_ctx),
+        "closeorder" => cmd_closeorder(cmd_ctx),
+        "openorder" => cmd_openorder(cmd_ctx),
+        "order" => cmd_order(cmd_ctx),
+        "overhead" => cmd_overhead(cmd_ctx),
+        "restaurants" => cmd_restaurants(cmd_ctx),
+        "search" => cmd_search(cmd_ctx),
+        "sharebill" => cmd_sharebill(cmd_ctx),
+        "sudo" => cmd_sudo(cmd_ctx),
+        "suggest" => cmd_suggest(cmd_ctx),
+        "summary" => cmd_summary(cmd_ctx),
         _ =>
             Ok(SlackResponse {
                 text: format!(":confused: Oh man! I don't understand /ffs {} {}\n\
-                    Try /ffs help", &cmd, &args),
+                    Try /ffs help", &cmd, &cmd_ctx.args),
                 ..Default::default()
             }),
     }
