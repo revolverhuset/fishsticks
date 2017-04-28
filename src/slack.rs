@@ -504,11 +504,11 @@ fn cmd_help(_cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
     })
 }
 
-type CommandHandler = Box<Fn(&CommandContext) -> Result<SlackResponse, Error> + Sync>;
+type CommandHandler = Fn(&CommandContext) -> Result<SlackResponse, Error> + Sync;
 
 lazy_static! {
-    static ref COMMAND_MAP: HashMap<&'static str, CommandHandler> = {
-        let mut m: HashMap<&'static str, CommandHandler> = HashMap::new();
+    static ref COMMAND_MAP: HashMap<&'static str, Box<CommandHandler>> = {
+        let mut m: HashMap<&'static str, Box<CommandHandler>> = HashMap::new();
         m.insert("associate",   Box::new(cmd_associate));
         m.insert("clear",       Box::new(cmd_clear));
         m.insert("closeorder",  Box::new(cmd_closeorder));
@@ -545,8 +545,6 @@ fn slack_core(
     Result<SlackResponse, Error>
 {
     let hashmap = req.get::<UrlEncodedBody>()?;
-
-    println!("Parsed GET request query string:\n {:?}", hashmap);
 
     if let &Some(slack_token) = maybe_slack_token {
         let given_token =
