@@ -1,10 +1,12 @@
 [package]
 authors = ["Magnus Hoff <maghoff@gmail.com>"]
-build = "migrate.rs"
+build = "build.rs"
 name = "fishsticks"
 version = "0.1.0"
 
 [build-dependencies]
+quote = "0.3.10"
+walkdir = "1"
 
 [build-dependencies.diesel]
 default-features = false

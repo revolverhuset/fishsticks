@@ -1,2 +1,2 @@
 #![allow(dead_code)]
-infer_schema!(".build.db");
+include!(concat!(env!("OUT_DIR"), "/infer_schema.rs"));
