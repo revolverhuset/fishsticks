@@ -10,6 +10,11 @@ pub fn adjective() -> &'static str {
         "sick",
         "tasty",
         "yummy",
+        "savory",
+        "nourishing",
+        "nutritious",
+        "calorific",
+        "soylent",
     ];
 
     rand::thread_rng().choose(ADJECTIVES).unwrap()
@@ -21,6 +26,13 @@ pub fn noun() -> &'static str {
         "fishstick",
         "food",
         "treat",
+        "digestible",
+        "grub",
+        "chow",
+        "subsistence",
+        "provision",
+        "mouthful",
+        "fodder",
     ];
 
     rand::thread_rng().choose(NOUNS).unwrap()
