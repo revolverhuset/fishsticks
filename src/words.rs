@@ -15,6 +15,7 @@ pub fn adjective() -> &'static str {
         "nutritious",
         "calorific",
         "soylent",
+        "life sustaining",
     ];
 
     rand::thread_rng().choose(ADJECTIVES).unwrap()
@@ -29,7 +30,7 @@ pub fn noun() -> &'static str {
         "digestible",
         "grub",
         "chow",
-        "subsistence",
+        "sustenance",
         "provision",
         "mouthful",
         "fodder",
