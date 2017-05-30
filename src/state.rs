@@ -283,26 +283,14 @@ impl State {
     }
 
     pub fn items_in_order(&self, order_id: OrderId) -> Result<Vec<(MenuItem, OrderItem)>, Error> {
-        use schema::order_items::dsl::*;
+        use schema::order_items;
         use schema::menu_items;
 
-        let oitems = order_items
-            .filter(order.eq(i32::from(order_id)))
-            .order((person_name.asc(), menu_item.asc()))
-            .load::<OrderItem>(&self.db_connection)?;
-
-        let mut result = Vec::<(MenuItem, OrderItem)>::new();
-
-        // Join manually, because I am unable to get Diesel to do it for me :(
-        for oitem in oitems {
-            result.push((
-                menu_items::table
-                    .find(i32::from(oitem.menu_item))
-                    .load(&self.db_connection)?
-                    .pop().unwrap(),
-                oitem,
-            ));
-        }
+        let result = menu_items::table
+            .inner_join(order_items::table)
+            .filter(order_items::order.eq(i32::from(order_id)))
+            .order((order_items::person_name.asc(), order_items::menu_item.asc()))
+            .load::<(MenuItem, OrderItem)>(&self.db_connection)?;
 
         Ok(result)
     }
