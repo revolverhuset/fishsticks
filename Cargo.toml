@@ -11,7 +11,7 @@ walkdir = "1"
 [build-dependencies.diesel]
 default-features = false
 features = ["sqlite"]
-version = "0.11.4"
+version = "0.13"
 
 [dependencies]
 bart = "0.1.0"
@@ -36,12 +36,12 @@ urlencoded = "0.5"
 [dependencies.diesel]
 default-features = false
 features = ["sqlite"]
-version = "0.11.4"
+version = "0.13"
 
 [dependencies.diesel_codegen]
 default-features = false
 features = ["sqlite"]
-version = "0.11.0"
+version = "0.13"
 
 [dependencies.sharebill]
 path = "libs/sharebill"
