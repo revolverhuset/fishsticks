@@ -79,6 +79,46 @@ struct CommandContext<'a, 'b, 'c, 'd> {
     env: &'d web::Env
 }
 
+fn cmd_repeat(&CommandContext { state_mutex, user_name, .. }: &CommandContext) -> Result<SlackResponse, Error> {
+    let state = state_mutex.lock()?;
+    let open_order = state.demand_open_order()?;
+    let menu = state.menu_object(open_order.menu)?.expect("Database invariant");
+
+    let menu_items = state.previous_orders(user_name, menu.restaurant)?;
+
+    let menu_items = menu_items.into_iter()
+        .map(|menu_item| -> Result<_, Error> {
+            let query = state::Query::ExactInteger(menu_item.number);
+            Ok(state.query_menu(open_order.menu, &query)?.pop())
+        })
+        .collect::<Result<Vec<_>, Error>>()?
+        .into_iter()
+        .filter_map(|x| x)
+        .collect::<Vec<_>>();
+
+    if menu_items.is_empty() {
+        return Ok(SlackResponse {
+            text: format!(":person_frowning: I found no matches for you"),
+            ..Default::default()
+        });
+    }
+
+    for menu_item in menu_items.iter() {
+        state.add_order_item(open_order.id, user_name, menu_item.id)?;
+    }
+
+    let summary = menu_items.into_iter()
+        .map(|x| format!("{}. {}", x.number, x.name))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    Ok(SlackResponse {
+        text: format!(":information_desk_person: {} the {} selection: {}",
+            affirm(), adjective(), summary),
+        ..Default::default()
+    })
+}
+
 fn cmd_restaurants(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
     let restaurants = state.restaurants()?.into_iter()
@@ -493,6 +533,7 @@ fn cmd_help(_cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
             openorder RESTAURANT\n    Start a new order from the given restaurant\n\
             order QUERY\n    Order whatever matches QUERY in the menu\n\
             overhead [VALUE]\n    Get/set overhead (delivery cost, gratuity, etc) for current order\n\
+            repeat\n    Repeat your last order for the current restaurant\n\
             restaurants\n    List known restaurants\n\
             search QUERY\n    See what matches QUERY in the menu\n\
             sharebill [CREDIT_ACCOUNT]\n    Post order to Sharebill. CREDIT_ACCOUNT defaults to your account\n\
@@ -516,6 +557,7 @@ lazy_static! {
         m.insert("openorder",   Box::new(cmd_openorder));
         m.insert("order",       Box::new(cmd_order));
         m.insert("overhead",    Box::new(cmd_overhead));
+        m.insert("repeat",      Box::new(cmd_repeat));
         m.insert("restaurants", Box::new(cmd_restaurants));
         m.insert("search",      Box::new(cmd_search));
         m.insert("sharebill",   Box::new(cmd_sharebill));

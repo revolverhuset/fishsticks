@@ -325,4 +325,34 @@ impl State {
             .load::<SharebillAssociation>(&self.db_connection)?
         )
     }
+
+    pub fn previous_orders(&self, slack_name: &str, restaurant: RestaurantId) ->
+        Result<Vec<MenuItem>, Error>
+    {
+        use diesel::expression::sql_literal::sql;
+        use diesel::types::*;
+
+        const SQL: &str = r"
+            SELECT menu_items.*
+            FROM order_items
+                INNER JOIN menu_items ON order_items.menu_item=menu_items.id
+                WHERE person_name=?
+                AND order_items.'order' = (
+                    SELECT order_items.'order'
+                    FROM order_items
+                    INNER JOIN orders ON order_items.'order'='orders'.id
+                    INNER JOIN menus ON menus.id=orders.menu
+                    WHERE order_items.person_name=?
+                    AND menus.restaurant=?
+                    ORDER BY orders.closed DESC
+                    LIMIT 1
+                )
+            ;";
+
+        Ok(sql::<(Integer, Integer, Integer, Text, Integer)>(SQL)
+            .bind::<Text, _>(slack_name)
+            .bind::<Text, _>(slack_name)
+            .bind::<Integer, _>(i32::from(restaurant))
+            .load::<MenuItem>(&self.db_connection)?)
+    }
 }
