@@ -113,6 +113,7 @@ fn cmd_repeat(&CommandContext { state_mutex, user_name, .. }: &CommandContext) -
         .join(", ");
 
     Ok(SlackResponse {
+        response_type: ResponseType::InChannel,
         text: format!(":information_desk_person: {} the {} selection: {}",
             affirm(), adjective(), summary),
         ..Default::default()
