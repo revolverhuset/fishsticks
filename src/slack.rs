@@ -628,13 +628,21 @@ fn slack_core(
     )
 }
 
+fn en_gb(s: &str) -> String {
+    s.replace('o', "ou").replace('O', "OU")
+}
+
 pub fn slack(slack_token: &Option<&str>, req: &mut Request) -> IronResult<Response> {
     match slack_core(slack_token, req) {
-        Ok(response) => Ok(Response::with((
-            status::Ok,
-            serde_json::to_string(&response).unwrap(),
-            Header(ContentType::json()),
-        ))),
+        Ok(mut response) => {
+            response.text = en_gb(&response.text);
+
+            Ok(Response::with((
+                status::Ok,
+                serde_json::to_string(&response).unwrap(),
+                Header(ContentType::json()),
+            )))
+        },
         Err(err) => Ok(Response::with((
             status::InternalServerError,
             serde_json::to_string(&SlackResponse {
