@@ -351,7 +351,7 @@ fn generate_bill(state: &state::State) -> Result<HashMap<String, Rational>, Erro
 fn cmd_sharebill(
     &CommandContext {
         state_mutex, args, user_name,
-        env: &web::Env { ref maybe_sharebill_url, .. },
+        env: &web::Env { ref maybe_sharebill_url, ref sharebill_cookies, .. },
         ..
     }: &CommandContext
 ) -> Result<SlackResponse, Error>
@@ -405,6 +405,7 @@ fn cmd_sharebill(
 
     let res = reqwest::Client::new()?
         .request(reqwest::Method::Put, &target_url)
+        .header(reqwest::header::Cookie(sharebill_cookies.clone()))
         .json(&post)
         .send()?;
 
@@ -424,7 +425,7 @@ fn cmd_sharebill(
 fn cmd_suggest(
     &CommandContext {
         state_mutex,
-        env: &web::Env { ref maybe_sharebill_url, .. },
+        env: &web::Env { ref maybe_sharebill_url, ref sharebill_cookies, .. },
         ..
     }: &CommandContext
 ) -> Result<SlackResponse, Error>
@@ -445,7 +446,11 @@ fn cmd_suggest(
     let state = state_mutex.lock()?;
     let debits = generate_bill(&state)?;
 
-    let mut res = reqwest::get(&format!("{}balances", &sharebill_url))?;
+    let mut res = reqwest::Client::new()?
+        .request(reqwest::Method::Get, &format!("{}balances", &sharebill_url))
+        .header(reqwest::header::Cookie(sharebill_cookies.clone()))
+        .send()?;
+
     if !res.status().is_success() {
         return Err(Error::UnexpectedStatus(res.status().clone()));
     }

@@ -39,5 +39,6 @@ fn main() {
         config.web.base,
         config.web.slack_token,
         config.web.sharebill_url,
+        config.web.sharebill_cookies,
     ).unwrap();
 }

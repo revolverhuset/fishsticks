@@ -68,6 +68,7 @@ impl BeforeMiddleware for StateContainer {
 pub struct Env {
     pub base_url: String,
     pub maybe_sharebill_url: Option<String>,
+    pub sharebill_cookies: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -209,6 +210,7 @@ pub fn run(
     base_url: String,
     slack_token: Option<String>,
     sharebill_url: Option<String>,
+    sharebill_cookies: Vec<String>,
 ) ->
     Result<(), Error>
 {
@@ -232,6 +234,7 @@ pub fn run(
     chain.link_before(EnvContainer(Arc::new(Env {
         base_url: base_url,
         maybe_sharebill_url: sharebill_url,
+        sharebill_cookies: sharebill_cookies,
     })));
 
     let listening = Iron::new(chain).http(bind)?;

@@ -20,7 +20,7 @@ pub struct DbConfig {
     pub connection_string: String,
 
     #[serde(default)]
-    pub run_migrations: bool
+    pub run_migrations: bool,
 }
 fn default_connection_string() -> String { ":memory:".to_owned() }
 
@@ -44,9 +44,13 @@ pub struct WebConfig {
     pub slack_token: Option<String>,
 
     pub sharebill_url: Option<String>,
+
+    #[serde(default="default_cookies")]
+    pub sharebill_cookies: Vec<String>,
 }
 fn default_bind() -> String { "localhost:3000".to_owned() }
 fn default_base() -> String { "http://localhost:3000/".to_owned() }
+fn default_cookies() -> Vec<String> { vec![] }
 
 impl WebConfig {
     fn new() -> WebConfig {
@@ -55,6 +59,7 @@ impl WebConfig {
             base: default_base(),
             slack_token: None,
             sharebill_url: None,
+            sharebill_cookies: vec![],
         }
     }
 }
@@ -73,13 +78,14 @@ impl Config {
         Config {
             database: DbConfig {
                 connection_string: default_connection_string(),
-                run_migrations: false, 
+                run_migrations: false,
             },
             web: WebConfig {
                 bind: default_bind(),
                 base: default_base(),
                 slack_token: None,
                 sharebill_url: None,
+                sharebill_cookies: vec![],
             },
         }
     }
@@ -146,6 +152,7 @@ pub fn read_config() -> ConfigResult {
             base: cfg.web.base,
             slack_token: cfg.web.slack_token,
             sharebill_url: cfg.web.sharebill_url,
+            sharebill_cookies: cfg.web.sharebill_cookies,
         },
     })
 }
