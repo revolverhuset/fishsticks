@@ -641,7 +641,7 @@ pub fn slack(slack_token: &Option<&str>, req: &mut Request) -> IronResult<Respon
             Header(ContentType::json()),
         ))),
         Err(err) => Ok(Response::with((
-            status::InternalServerError,
+            status::Ok,
             serde_json::to_string(&SlackResponse {
                 text: format!(":no_good: {:?}", &err),
                 ..Default::default()
