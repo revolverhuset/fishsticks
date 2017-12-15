@@ -5,7 +5,7 @@ use std::fmt;
 use std::ops;
 use std::str::FromStr;
 
-use self::num::{BigRational, Zero, One};
+use self::num::{BigRational, Zero, One, ToPrimitive};
 use self::regex::Regex;
 
 quick_error! {
@@ -21,6 +21,10 @@ pub struct Rational(pub num::BigRational);
 impl Rational {
     pub fn from_cents(cents: i32) -> Rational {
         Rational(num::BigRational::new(cents.into(), 100.into()))
+    }
+
+    pub fn to_f64(&self) -> f64 {
+        self.0.numer().to_f64().unwrap() / self.0.denom().to_f64().unwrap()
     }
 }
 

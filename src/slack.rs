@@ -276,6 +276,47 @@ fn cmd_summary(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<S
     })
 }
 
+fn cmd_price(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<SlackResponse, Error> {
+    use self::num::Zero;
+
+    let state = state_mutex.lock()?;
+    let open_order = state.demand_open_order()?;
+    let items = state.items_in_order(open_order.id)?;
+
+    use std::fmt::Write;
+    let mut buf = String::new();
+
+    let persons = Rational::from(items.iter()
+        .group_by(|&&(_, ref order_item)| order_item.person_name.clone()).into_iter()
+        .count());
+
+    let overhead = Rational::from_cents(open_order.overhead_in_cents);
+    let overhead_per_person = overhead.clone() / persons;
+
+    if !overhead.is_zero() {
+        writeln!(&mut buf, "Total overhead {}, per person: {}", overhead, overhead_per_person)?;
+    }
+
+    for (person_name, items) in
+        items.into_iter()
+            .group_by(|&(_, ref order_item)| order_item.person_name.clone()).into_iter()
+    {
+        let items: Vec<_> = items.collect();
+        let total: i32 = items.iter().map(|&(ref menu_item, _)| menu_item.price_in_cents).sum();
+        let total = Rational::from_cents(total) + &overhead_per_person;
+        let total = total.to_f64();
+        writeln!(&mut buf, "{}: {:.2}", person_name, total)?;
+        for (menu_item, _) in items {
+            writeln!(&mut buf, " - {}. {}: {:.2}", menu_item.number, menu_item.name, menu_item.price_in_cents as f64 / 100.)?;
+        }
+    }
+
+    Ok(SlackResponse {
+        text: buf,
+        ..Default::default()
+    })
+}
+
 fn cmd_associate(&CommandContext { state_mutex, args, user_name, .. }: &CommandContext) -> Result<SlackResponse, Error> {
     if args.len() == 0 {
         let state = state_mutex.lock()?;
@@ -539,6 +580,7 @@ fn cmd_help(_cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
             openorder RESTAURANT\n    Start a new order from the given restaurant\n\
             order QUERY\n    Order whatever matches QUERY in the menu\n\
             overhead [VALUE]\n    Get/set overhead (delivery cost, gratuity, etc) for current order\n\
+            price\n    Like summary, but with price annotations\n\
             repeat\n    Repeat your last order for the current restaurant\n\
             restaurants\n    List known restaurants\n\
             search QUERY\n    See what matches QUERY in the menu\n\
@@ -563,6 +605,7 @@ lazy_static! {
         m.insert("openorder",   Box::new(cmd_openorder));
         m.insert("order",       Box::new(cmd_order));
         m.insert("overhead",    Box::new(cmd_overhead));
+        m.insert("price",       Box::new(cmd_price));
         m.insert("repeat",      Box::new(cmd_repeat));
         m.insert("restaurants", Box::new(cmd_restaurants));
         m.insert("search",      Box::new(cmd_search));
