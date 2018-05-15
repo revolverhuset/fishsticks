@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+curl \
+    -s \
+    https://revolverhuset.no/fishsticks/slack \
+    -d token="$(jq -r .web.slack_token /home/mag/fishsticks/prod.json)" \
+    -d user_name="$(whoami)" \
+    -d text="$*" \
+    | jq -r .text
