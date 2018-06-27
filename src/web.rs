@@ -111,7 +111,7 @@ fn create_restaurant(req: &mut Request) -> IronResult<Response> {
             .map(String::as_ref);
 
     if name.is_none() {
-        return Ok(Response::with((status::BadRequest)));
+        return Ok(Response::with(status::BadRequest));
     }
     let name = name.unwrap();
 
@@ -205,7 +205,7 @@ fn menu(req: &mut Request) -> IronResult<Response> {
 }
 
 pub fn run(
-    state: state::State,
+    state: Arc<Mutex<state::State>>,
     bind: &str,
     base_url: String,
     slack_token: Option<String>,
@@ -230,7 +230,7 @@ pub fn run(
         "slack");
 
     let mut chain = Chain::new(router);
-    chain.link_before(StateContainer(Arc::new(Mutex::new(state))));
+    chain.link_before(StateContainer(state));
     chain.link_before(EnvContainer(Arc::new(Env {
         base_url: base_url,
         maybe_sharebill_url: sharebill_url,

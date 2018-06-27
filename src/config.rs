@@ -14,7 +14,7 @@ quick_error! {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct DbConfig {
     #[serde(default="default_connection_string")]
     pub connection_string: String,
@@ -33,7 +33,7 @@ impl DbConfig {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct WebConfig {
     #[serde(default="default_bind")]
     pub bind: String,
@@ -64,13 +64,22 @@ impl WebConfig {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
+pub struct MatrixConfig {
+    pub user: String,
+    pub password: String,
+    pub server: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     #[serde(default = "DbConfig::new")]
     pub database: DbConfig,
 
     #[serde(default = "WebConfig::new")]
     pub web: WebConfig,
+
+    pub matrix: Option<MatrixConfig>,
 }
 
 impl Config {
@@ -87,6 +96,7 @@ impl Config {
                 sharebill_url: None,
                 sharebill_cookies: vec![],
             },
+            matrix: None,
         }
     }
 }
@@ -154,5 +164,6 @@ pub fn read_config() -> ConfigResult {
             sharebill_url: cfg.web.sharebill_url,
             sharebill_cookies: cfg.web.sharebill_cookies,
         },
+        matrix: cfg.matrix,
     })
 }

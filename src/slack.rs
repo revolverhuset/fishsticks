@@ -25,7 +25,7 @@ use std::collections::HashMap;
 
 quick_error! {
     #[derive(Debug)]
-    enum Error {
+    pub enum Error {
         StateError(err: state::Error) { from() }
         UrlDecodingError(err: urlencoded::UrlDecodingError) { from() }
         PoisonError
@@ -49,7 +49,7 @@ impl<T> std::convert::From<std::sync::PoisonError<T>> for Error {
 }
 
 #[derive(Serialize)]
-enum ResponseType {
+pub enum ResponseType {
     #[serde(rename = "ephemeral")]
     Ephemeral,
 
@@ -64,19 +64,19 @@ impl Default for ResponseType {
 }
 
 #[derive(Serialize, Default)]
-struct SlackResponse {
-    response_type: ResponseType,
-    text: String,
-    unfurl_links: bool,
+pub struct SlackResponse {
+    pub response_type: ResponseType,
+    pub text: String,
+    pub unfurl_links: bool,
 }
 
 use std::sync::Mutex;
 
-struct CommandContext<'a, 'b, 'c, 'd> {
-    state_mutex: &'a Mutex<state::State>,
-    args: &'b str,
-    user_name: &'c str,
-    env: &'d web::Env
+pub struct CommandContext<'a, 'b, 'c, 'd> {
+    pub state_mutex: &'a Mutex<state::State>,
+    pub args: &'b str,
+    pub user_name: &'c str,
+    pub env: &'d web::Env
 }
 
 fn cmd_repeat(&CommandContext { state_mutex, user_name, .. }: &CommandContext) -> Result<SlackResponse, Error> {
@@ -617,7 +617,7 @@ lazy_static! {
     };
 }
 
-fn exec_cmd(cmd: &str, cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
+pub fn exec_cmd(cmd: &str, cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
     match COMMAND_MAP.get(cmd) {
         Some(cmd) => cmd(cmd_ctx),
         _ =>

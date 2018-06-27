@@ -4,11 +4,14 @@
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate serde_derive;
+extern crate crossbeam;
+extern crate matrix_bot_api;
 extern crate sharebill;
 
 mod config;
 mod db;
 mod ingest;
+mod matrix;
 mod models;
 mod schema;
 mod slack;
@@ -16,6 +19,8 @@ mod state;
 mod takedown;
 mod web;
 mod words;
+
+use std::sync::{Arc, Mutex};
 
 fn main() {
     let config = match config::read_config() {
@@ -31,14 +36,42 @@ fn main() {
     };
 
     let db_connection = db::connect_database(&config.database.connection_string, config.database.run_migrations);
-    let state = state::State::new(db_connection);
+    let state = Arc::new(Mutex::new(state::State::new(db_connection)));
 
-    web::run(
-        state,
-        &config.web.bind,
-        config.web.base,
-        config.web.slack_token,
-        config.web.sharebill_url,
-        config.web.sharebill_cookies,
-    ).unwrap();
+    crossbeam::scope(|scope| {
+        let web = {
+            let state = state.clone();
+            let config = config.clone();
+            scope.spawn(||
+                web::run(
+                    state,
+                    &config.web.bind,
+                    config.web.base,
+                    config.web.slack_token,
+                    config.web.sharebill_url,
+                    config.web.sharebill_cookies,
+                )
+            )
+        };
+
+        let env =
+            web::Env {
+                base_url: config.web.base,
+                maybe_sharebill_url: config.web.sharebill_url,
+                sharebill_cookies: config.web.sharebill_cookies,
+            };
+
+        let matrix = config.matrix.map(|matrix| scope.spawn(move ||
+            matrix::run(
+                state,
+                env,
+                &matrix.user,
+                &matrix.password,
+                &matrix.server,
+            )
+        ));
+
+        web.join().unwrap();
+        matrix.map(|x| x.join().unwrap());
+    });
 }
