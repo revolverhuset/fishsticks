@@ -52,6 +52,9 @@ path = "libs/sharebill"
 features = ["use_std", "v4"]
 version = "^0.2"
 
+[patch.crates-io]
+fractal-matrix-api = { git = "https://github.com/maghoff/fractal-matrix-api.git", default-features = false }
+
 [profile]
 
 [profile.dev]
