@@ -98,7 +98,7 @@ fn cmd_repeat(&CommandContext { state_mutex, user_name, .. }: &CommandContext) -
 
     if menu_items.is_empty() {
         return Ok(SlackResponse {
-            text: format!(":person_frowning: I found no matches for you"),
+            text: format!("🙍 I found no matches for you"),
             ..Default::default()
         });
     }
@@ -114,7 +114,7 @@ fn cmd_repeat(&CommandContext { state_mutex, user_name, .. }: &CommandContext) -
 
     Ok(SlackResponse {
         response_type: ResponseType::InChannel,
-        text: format!(":information_desk_person: {} the {} selection: {}",
+        text: format!("💁 {} the {} selection: {}",
             affirm(), adjective(), summary),
         ..Default::default()
     })
@@ -160,8 +160,8 @@ fn cmd_openorder(&CommandContext { state_mutex, args, env: &web::Env { ref base_
 
     Ok(SlackResponse {
         response_type: ResponseType::InChannel,
-        text: format!(":bell: Now taking orders from the \
-            <{}menu/{}|{} menu> :memo:",
+        text: format!("🔔 Now taking orders from the \
+            <{}menu/{}|{} menu> 📝",
             base_url, i32::from(menu.id), &restaurant.name),
         ..Default::default()
     })
@@ -190,7 +190,7 @@ fn cmd_search(&CommandContext { state_mutex, args, .. }: &CommandContext) -> Res
             use std::fmt::Write;
             let mut buf = String::new();
 
-            writeln!(&mut buf, ":information_desk_person: The best matches I found for {:?} are:\n", &args)?;
+            writeln!(&mut buf, "💁 The best matches I found for {:?} are:\n", &args)?;
             for item in items[..4].iter() {
                 writeln!(&mut buf, " - {}. {}", item.number, item.name)?;
             }
@@ -203,13 +203,13 @@ fn cmd_search(&CommandContext { state_mutex, args, .. }: &CommandContext) -> Res
         ref mut items if items.len() == 1 => {
             let menu_item = items.pop().expect("Guaranteed because of match arm");
             Ok(SlackResponse {
-                text: format!(":information_desk_person: That query matches the {} \
+                text: format!("💁 That query matches the {} \
                     {} {}. {}", adjective(), noun(), &menu_item.number, &menu_item.name),
                 ..Default::default()
             })
         },
         _ => Ok(SlackResponse {
-            text: format!(":person_frowning: I found no matches for {:?}", &args),
+            text: format!("🙍 I found no matches for {:?}", &args),
             ..Default::default()
         }),
     }
@@ -227,13 +227,13 @@ fn cmd_order(&CommandContext { state_mutex, args, user_name, .. }: &CommandConte
 
             Ok(SlackResponse {
                 response_type: ResponseType::InChannel,
-                text: format!(":information_desk_person: {} the {} {} {}. {}",
+                text: format!("💁 {} the {} {} {}. {}",
                     affirm(), adjective(), noun(), &menu_item.number, &menu_item.name),
                 ..Default::default()
             })
         },
         None => Ok(SlackResponse {
-            text: format!(":person_frowning: I found no matches for {:?}", &args),
+            text: format!("🙍 I found no matches for {:?}", &args),
             ..Default::default()
         }),
     }
@@ -247,7 +247,7 @@ fn cmd_clear(&CommandContext { state_mutex, user_name, .. }: &CommandContext) ->
 
     Ok(SlackResponse {
         response_type: ResponseType::InChannel,
-        text: format!(":person_frowning: So that's how it's going to be!"),
+        text: format!("🙍 So that's how it's going to be!"),
         ..Default::default()
     })
 }
@@ -342,7 +342,7 @@ fn cmd_associate(&CommandContext { state_mutex, args, user_name, .. }: &CommandC
         state.set_association(slack_name, sharebill_account)?;
 
         Ok(SlackResponse {
-            text: format!("Billing orders by {} to account {}. Got it :+1:",
+            text: format!("Billing orders by {} to account {}. Got it 👍",
                 slack_name, sharebill_account),
             ..Default::default()
         })
@@ -458,7 +458,7 @@ fn cmd_sharebill(
 
     Ok(SlackResponse {
         response_type: ResponseType::InChannel,
-        text: format!(":money_with_wings: Posted to <{}|Sharebill> and closed order :heavy_check_mark:", target_url),
+        text: format!("💸 Posted to <{}|Sharebill> and closed order ✔️", target_url),
         ..Default::default()
     })
 }
@@ -511,7 +511,7 @@ fn cmd_suggest(
     use std::fmt::Write;
     let mut buf = String::new();
 
-    writeln!(&mut buf, ":information_desk_person: The poorest people on sharebill are:")?;
+    writeln!(&mut buf, "💁 The poorest people on sharebill are:")?;
     for (account_name, old_balance, new_balance) in balances.into_iter().take(3) {
         writeln!(&mut buf, " - {} ({}, projected new balance: {})", account_name, old_balance.0.to_integer(), new_balance.0.to_integer())?;
     }
@@ -530,7 +530,7 @@ fn cmd_overhead(&CommandContext { state_mutex, args, .. }: &CommandContext) -> R
     if args.len() == 0 {
         Ok(SlackResponse {
             text: format!(
-                ":information_desk_person: Overhead is set to {}.{:02}",
+                "💁 Overhead is set to {}.{:02}",
                 open_order.overhead_in_cents / 100, open_order.overhead_in_cents % 100),
             ..Default::default()
         })
@@ -545,7 +545,7 @@ fn cmd_overhead(&CommandContext { state_mutex, args, .. }: &CommandContext) -> R
         Ok(SlackResponse {
             response_type: ResponseType::InChannel,
             text: format!(
-                ":information_desk_person: Overhead changed from {}.{:02} to {}.{:02}",
+                "💁 Overhead changed from {}.{:02} to {}.{:02}",
                 old_overhead_in_cents / 100, old_overhead_in_cents % 100,
                 overhead_in_cents / 100, overhead_in_cents % 100),
             ..Default::default()
@@ -622,7 +622,7 @@ pub fn exec_cmd(cmd: &str, cmd_ctx: &CommandContext) -> Result<SlackResponse, Er
         Some(cmd) => cmd(cmd_ctx),
         _ =>
             Ok(SlackResponse {
-                text: format!(":confused: Oh man! I don't understand /ffs {} {}\n\
+                text: format!("😕 Oh man! I don't understand /ffs {} {}\n\
                     Try /ffs help", &cmd, &cmd_ctx.args),
                 ..Default::default()
             })
@@ -686,7 +686,7 @@ pub fn slack(slack_token: &Option<&str>, req: &mut Request) -> IronResult<Respon
         Err(err) => Ok(Response::with((
             status::Ok,
             serde_json::to_string(&SlackResponse {
-                text: format!(":no_good: {:?}", &err),
+                text: format!("🙅 {:?}", &err),
                 ..Default::default()
             }).unwrap(),
             Header(ContentType::json()),
