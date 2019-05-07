@@ -570,13 +570,13 @@ fn cmd_sharebill(
 
     let target_url = format!("{}post/{}", &sharebill_url, &uuid::Uuid::new_v4());
 
-    let res = reqwest::Client::new()?
-        .request(reqwest::Method::Put, &target_url)
-        .header(reqwest::header::Cookie(sharebill_cookies.clone()))
+    let res = reqwest::Client::new()
+        .request(reqwest::Method::PUT, &target_url)
+        .header(reqwest::header::COOKIE, sharebill_cookies.join(", "))
         .json(&post)
         .send()?;
 
-    if res.status() != &reqwest::StatusCode::Created {
+    if res.status() != reqwest::StatusCode::CREATED {
         return Err(Error::UnexpectedStatus(res.status().clone()));
     }
 
@@ -622,9 +622,9 @@ fn cmd_suggest(
     let state = state_mutex.lock()?;
     let debits = generate_bill(&state)?;
 
-    let mut res = reqwest::Client::new()?
-        .request(reqwest::Method::Get, &format!("{}balances", &sharebill_url))
-        .header(reqwest::header::Cookie(sharebill_cookies.clone()))
+    let mut res = reqwest::Client::new()
+        .request(reqwest::Method::GET, &format!("{}balances", &sharebill_url))
+        .header(reqwest::header::COOKIE, sharebill_cookies.join(", "))
         .send()?;
 
     if !res.status().is_success() {

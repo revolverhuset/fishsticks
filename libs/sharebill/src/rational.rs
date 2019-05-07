@@ -96,7 +96,7 @@ impl serde::Serialize for Rational {
 }
 
 struct RationalVisitor;
-impl serde::de::Visitor for RationalVisitor {
+impl<'a> serde::de::Visitor<'a> for RationalVisitor {
     type Value = Rational;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -113,10 +113,10 @@ impl serde::de::Visitor for RationalVisitor {
     }
 }
 
-impl serde::Deserialize for Rational {
+impl<'a> serde::Deserialize<'a> for Rational {
     fn deserialize<D>(de: D) -> Result<Self, D::Error>
     where
-        D: serde::Deserializer,
+        D: serde::Deserializer<'a>,
     {
         de.deserialize_str(RationalVisitor)
     }
