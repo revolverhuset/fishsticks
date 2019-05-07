@@ -14,10 +14,10 @@ use std;
 use web;
 use words::*;
 
-use self::iron::prelude::*;
-use self::iron::status;
 use self::iron::headers::ContentType;
 use self::iron::modifiers::Header;
+use self::iron::prelude::*;
+use self::iron::status;
 use self::itertools::*;
 use self::urlencoded::UrlEncodedBody;
 use sharebill::Rational;
@@ -76,17 +76,26 @@ pub struct CommandContext<'a, 'b, 'c, 'd> {
     pub state_mutex: &'a Mutex<state::State>,
     pub args: &'b str,
     pub user_name: &'c str,
-    pub env: &'d web::Env
+    pub env: &'d web::Env,
 }
 
-fn cmd_repeat(&CommandContext { state_mutex, user_name, .. }: &CommandContext) -> Result<SlackResponse, Error> {
+fn cmd_repeat(
+    &CommandContext {
+        state_mutex,
+        user_name,
+        ..
+    }: &CommandContext,
+) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
-    let menu = state.menu_object(open_order.menu)?.expect("Database invariant");
+    let menu = state
+        .menu_object(open_order.menu)?
+        .expect("Database invariant");
 
     let menu_items = state.previous_orders(user_name, menu.restaurant)?;
 
-    let menu_items = menu_items.into_iter()
+    let menu_items = menu_items
+        .into_iter()
         .map(|menu_item| -> Result<_, Error> {
             let query = state::Query::ExactInteger(menu_item.number);
             Ok(state.query_menu(open_order.menu, &query)?.pop())
@@ -107,51 +116,70 @@ fn cmd_repeat(&CommandContext { state_mutex, user_name, .. }: &CommandContext) -
         state.add_order_item(open_order.id, user_name, menu_item.id)?;
     }
 
-    let summary = menu_items.into_iter()
+    let summary = menu_items
+        .into_iter()
         .map(|x| format!("{}. {}", x.number, x.name))
         .collect::<Vec<_>>()
         .join(", ");
 
     Ok(SlackResponse {
         response_type: ResponseType::InChannel,
-        text: format!("💁 {} the {} selection: {}",
-            affirm(), adjective(), summary),
+        text: format!(
+            "💁 {} the {} selection: {}",
+            affirm(),
+            adjective(),
+            summary
+        ),
         ..Default::default()
     })
 }
 
-fn cmd_restaurants(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<SlackResponse, Error> {
+fn cmd_restaurants(
+    &CommandContext { state_mutex, .. }: &CommandContext,
+) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
-    let restaurants = state.restaurants()?.into_iter()
+    let restaurants = state
+        .restaurants()?
+        .into_iter()
         .map(|x| x.name)
         .collect::<Vec<_>>()
         .join(", ");
 
     Ok(SlackResponse {
-        text: format!("I know of these restaurants: {}",
-            &restaurants),
+        text: format!("I know of these restaurants: {}", &restaurants),
         ..Default::default()
     })
 }
 
-fn cmd_openorder(&CommandContext { state_mutex, args, env: &web::Env { ref base_url, .. }, .. }: &CommandContext) -> Result<SlackResponse, Error> {
+fn cmd_openorder(
+    &CommandContext {
+        state_mutex,
+        args,
+        env: &web::Env { ref base_url, .. },
+        ..
+    }: &CommandContext,
+) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
 
     let restaurant = match state.restaurant_by_name(args)? {
         Some(resturant) => resturant,
         None => {
-            let restaurants = state.restaurants()?.into_iter()
+            let restaurants = state
+                .restaurants()?
+                .into_iter()
                 .map(|x| x.name)
                 .collect::<Vec<_>>()
                 .join(", ");
 
             return Ok(SlackResponse {
-                text: format!("Usage: /ffs openorder RESTAURANT\n\
-                    I know of these restaurants: {}",
-                    &restaurants),
+                text: format!(
+                    "Usage: /ffs openorder RESTAURANT\n\
+                     I know of these restaurants: {}",
+                    &restaurants
+                ),
                 ..Default::default()
-            })
-        },
+            });
+        }
     };
 
     let menu = state.current_menu_for_restaurant(restaurant.id)?;
@@ -160,14 +188,20 @@ fn cmd_openorder(&CommandContext { state_mutex, args, env: &web::Env { ref base_
 
     Ok(SlackResponse {
         response_type: ResponseType::InChannel,
-        text: format!("🔔 Now taking orders from the \
-            <{}menu/{}|{} menu> 📝",
-            base_url, i32::from(menu.id), &restaurant.name),
+        text: format!(
+            "🔔 Now taking orders from the \
+             <{}menu/{}|{} menu> 📝",
+            base_url,
+            i32::from(menu.id),
+            &restaurant.name
+        ),
         ..Default::default()
     })
 }
 
-fn cmd_closeorder(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<SlackResponse, Error> {
+fn cmd_closeorder(
+    &CommandContext { state_mutex, .. }: &CommandContext,
+) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
 
     state.close_current_order()?;
@@ -179,7 +213,11 @@ fn cmd_closeorder(&CommandContext { state_mutex, .. }: &CommandContext) -> Resul
     })
 }
 
-fn cmd_search(&CommandContext { state_mutex, args, .. }: &CommandContext) -> Result<SlackResponse, Error> {
+fn cmd_search(
+    &CommandContext {
+        state_mutex, args, ..
+    }: &CommandContext,
+) -> Result<SlackResponse, Error> {
     let query = state::Query::interpret_string(&args);
 
     let state = state_mutex.lock()?;
@@ -190,7 +228,11 @@ fn cmd_search(&CommandContext { state_mutex, args, .. }: &CommandContext) -> Res
             use std::fmt::Write;
             let mut buf = String::new();
 
-            writeln!(&mut buf, "💁 The best matches I found for {:?} are:\n", &args)?;
+            writeln!(
+                &mut buf,
+                "💁 The best matches I found for {:?} are:\n",
+                &args
+            )?;
             for item in items[..4].iter() {
                 writeln!(&mut buf, " - {}. {}", item.number, item.name)?;
             }
@@ -199,15 +241,21 @@ fn cmd_search(&CommandContext { state_mutex, args, .. }: &CommandContext) -> Res
                 text: buf,
                 ..Default::default()
             })
-        },
+        }
         ref mut items if items.len() == 1 => {
             let menu_item = items.pop().expect("Guaranteed because of match arm");
             Ok(SlackResponse {
-                text: format!("💁 That query matches the {} \
-                    {} {}. {}", adjective(), noun(), &menu_item.number, &menu_item.name),
+                text: format!(
+                    "💁 That query matches the {} \
+                     {} {}. {}",
+                    adjective(),
+                    noun(),
+                    &menu_item.number,
+                    &menu_item.name
+                ),
                 ..Default::default()
             })
-        },
+        }
         _ => Ok(SlackResponse {
             text: format!("🙍 I found no matches for {:?}", &args),
             ..Default::default()
@@ -215,7 +263,14 @@ fn cmd_search(&CommandContext { state_mutex, args, .. }: &CommandContext) -> Res
     }
 }
 
-fn cmd_order(&CommandContext { state_mutex, args, user_name, .. }: &CommandContext) -> Result<SlackResponse, Error> {
+fn cmd_order(
+    &CommandContext {
+        state_mutex,
+        args,
+        user_name,
+        ..
+    }: &CommandContext,
+) -> Result<SlackResponse, Error> {
     let query = state::Query::interpret_string(&args);
 
     let state = state_mutex.lock()?;
@@ -227,11 +282,17 @@ fn cmd_order(&CommandContext { state_mutex, args, user_name, .. }: &CommandConte
 
             Ok(SlackResponse {
                 response_type: ResponseType::InChannel,
-                text: format!("💁 {} the {} {} {}. {}",
-                    affirm(), adjective(), noun(), &menu_item.number, &menu_item.name),
+                text: format!(
+                    "💁 {} the {} {} {}. {}",
+                    affirm(),
+                    adjective(),
+                    noun(),
+                    &menu_item.number,
+                    &menu_item.name
+                ),
                 ..Default::default()
             })
-        },
+        }
         None => Ok(SlackResponse {
             text: format!("🙍 I found no matches for {:?}", &args),
             ..Default::default()
@@ -239,7 +300,13 @@ fn cmd_order(&CommandContext { state_mutex, args, user_name, .. }: &CommandConte
     }
 }
 
-fn cmd_clear(&CommandContext { state_mutex, user_name, .. }: &CommandContext) -> Result<SlackResponse, Error> {
+fn cmd_clear(
+    &CommandContext {
+        state_mutex,
+        user_name,
+        ..
+    }: &CommandContext,
+) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
 
@@ -252,7 +319,9 @@ fn cmd_clear(&CommandContext { state_mutex, user_name, .. }: &CommandContext) ->
     })
 }
 
-fn cmd_summary(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<SlackResponse, Error> {
+fn cmd_summary(
+    &CommandContext { state_mutex, .. }: &CommandContext,
+) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
     let items = state.items_in_order(open_order.id)?;
@@ -260,9 +329,10 @@ fn cmd_summary(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<S
     use std::fmt::Write;
     let mut buf = String::new();
 
-    for (person_name, items) in
-        items.into_iter()
-            .group_by(|&(_, ref order_item)| order_item.person_name.clone()).into_iter()
+    for (person_name, items) in items
+        .into_iter()
+        .group_by(|&(_, ref order_item)| order_item.person_name.clone())
+        .into_iter()
     {
         writeln!(&mut buf, "{}:", person_name)?;
         for (menu_item, _) in items {
@@ -286,28 +356,46 @@ fn cmd_price(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<Sla
     use std::fmt::Write;
     let mut buf = String::new();
 
-    let persons = Rational::from(items.iter()
-        .group_by(|&&(_, ref order_item)| order_item.person_name.clone()).into_iter()
-        .count());
+    let persons = Rational::from(
+        items
+            .iter()
+            .group_by(|&&(_, ref order_item)| order_item.person_name.clone())
+            .into_iter()
+            .count(),
+    );
 
     let overhead = Rational::from_cents(open_order.overhead_in_cents);
     let overhead_per_person = overhead.clone() / persons;
 
     if !overhead.is_zero() {
-        writeln!(&mut buf, "Total overhead {}, per person: {}", overhead, overhead_per_person)?;
+        writeln!(
+            &mut buf,
+            "Total overhead {}, per person: {}",
+            overhead, overhead_per_person
+        )?;
     }
 
-    for (person_name, items) in
-        items.into_iter()
-            .group_by(|&(_, ref order_item)| order_item.person_name.clone()).into_iter()
+    for (person_name, items) in items
+        .into_iter()
+        .group_by(|&(_, ref order_item)| order_item.person_name.clone())
+        .into_iter()
     {
         let items: Vec<_> = items.collect();
-        let total: i32 = items.iter().map(|&(ref menu_item, _)| menu_item.price_in_cents).sum();
+        let total: i32 = items
+            .iter()
+            .map(|&(ref menu_item, _)| menu_item.price_in_cents)
+            .sum();
         let total = Rational::from_cents(total) + &overhead_per_person;
         let total = total.to_f64();
         writeln!(&mut buf, "{}: {:.2}", person_name, total)?;
         for (menu_item, _) in items {
-            writeln!(&mut buf, " - {}. {}: {:.2}", menu_item.number, menu_item.name, menu_item.price_in_cents as f64 / 100.)?;
+            writeln!(
+                &mut buf,
+                " - {}. {}: {:.2}",
+                menu_item.number,
+                menu_item.name,
+                menu_item.price_in_cents as f64 / 100.
+            )?;
         }
     }
 
@@ -317,17 +405,28 @@ fn cmd_price(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<Sla
     })
 }
 
-fn cmd_associate(&CommandContext { state_mutex, args, user_name, .. }: &CommandContext) -> Result<SlackResponse, Error> {
+fn cmd_associate(
+    &CommandContext {
+        state_mutex,
+        args,
+        user_name,
+        ..
+    }: &CommandContext,
+) -> Result<SlackResponse, Error> {
     if args.len() == 0 {
         let state = state_mutex.lock()?;
-        let associations = state.all_associations()?.into_iter()
+        let associations = state
+            .all_associations()?
+            .into_iter()
             .map(|x| format!("{} \u{2192} {}", &x.slack_name, &x.sharebill_account))
             .collect::<Vec<_>>()
             .join("\n    ");
 
         Ok(SlackResponse {
-            text: format!("I have the following mappings from slack names to sharebill accounts:\n    {}",
-                &associations),
+            text: format!(
+                "I have the following mappings from slack names to sharebill accounts:\n    {}",
+                &associations
+            ),
             ..Default::default()
         })
     } else {
@@ -342,8 +441,10 @@ fn cmd_associate(&CommandContext { state_mutex, args, user_name, .. }: &CommandC
         state.set_association(slack_name, sharebill_account)?;
 
         Ok(SlackResponse {
-            text: format!("Billing orders by {} to account {}. Got it 👍",
-                slack_name, sharebill_account),
+            text: format!(
+                "Billing orders by {} to account {}. Got it 👍",
+                slack_name, sharebill_account
+            ),
             ..Default::default()
         })
     }
@@ -355,21 +456,30 @@ fn generate_bill(state: &state::State) -> Result<HashMap<String, Rational>, Erro
     let open_order = state.demand_open_order()?;
     let items = state.items_in_order(open_order.id)?;
 
-    let associations = state.all_associations()?.into_iter()
+    let associations = state
+        .all_associations()?
+        .into_iter()
         .map(|x| (x.slack_name, x.sharebill_account))
         .collect::<HashMap<_, _>>();
 
-    let persons = Rational::from(items.iter()
-        .group_by(|&&(_, ref order_item)| order_item.person_name.clone()).into_iter()
-        .count());
+    let persons = Rational::from(
+        items
+            .iter()
+            .group_by(|&&(_, ref order_item)| order_item.person_name.clone())
+            .into_iter()
+            .count(),
+    );
 
     let overhead = Rational::from_cents(open_order.overhead_in_cents);
     let overhead_per_person = overhead / persons;
 
-    let slack_debits = items.into_iter()
-        .group_by(|&(_, ref order_item)| order_item.person_name.clone()).into_iter()
+    let slack_debits = items
+        .into_iter()
+        .group_by(|&(_, ref order_item)| order_item.person_name.clone())
+        .into_iter()
         .map(|(person_name, items)| {
-            let food = items.into_iter()
+            let food = items
+                .into_iter()
                 .map(|(menu_item, _)| Rational::from_cents(menu_item.price_in_cents))
                 .fold(Rational::zero(), |acc, x| acc + x);
 
@@ -381,7 +491,9 @@ fn generate_bill(state: &state::State) -> Result<HashMap<String, Rational>, Erro
     // people to the same accuont. This is handled below:
     let mut debits = HashMap::<String, Rational>::new();
     for (slack_name, value) in slack_debits {
-        let account = associations.get(&slack_name).ok_or(Error::MissingAssociation(slack_name))?;
+        let account = associations
+            .get(&slack_name)
+            .ok_or(Error::MissingAssociation(slack_name))?;
         let entry = debits.entry(account.clone()).or_insert_with(Rational::zero);
         *entry = &*entry + value;
     }
@@ -391,31 +503,44 @@ fn generate_bill(state: &state::State) -> Result<HashMap<String, Rational>, Erro
 
 fn cmd_sharebill(
     &CommandContext {
-        state_mutex, args, user_name,
-        env: &web::Env { ref maybe_sharebill_url, ref sharebill_cookies, .. },
+        state_mutex,
+        args,
+        user_name,
+        env:
+            &web::Env {
+                ref maybe_sharebill_url,
+                ref sharebill_cookies,
+                ..
+            },
         ..
-    }: &CommandContext
-) -> Result<SlackResponse, Error>
-{
-    use std::collections::HashMap;
+    }: &CommandContext,
+) -> Result<SlackResponse, Error> {
     use self::num::Zero;
+    use std::collections::HashMap;
 
-    let sharebill_url = maybe_sharebill_url.as_ref().ok_or(Error::MissingConfig("web.sharebill_url"))?;
+    let sharebill_url = maybe_sharebill_url
+        .as_ref()
+        .ok_or(Error::MissingConfig("web.sharebill_url"))?;
 
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
 
-    let description = format!("{}",
-        state.restaurant(
-            state.menu_object(open_order.menu)?
-                .ok_or(Error::NotFound)?
-                .restaurant
-        )?
-        .ok_or(Error::NotFound)?
-        .name
+    let description = format!(
+        "{}",
+        state
+            .restaurant(
+                state
+                    .menu_object(open_order.menu)?
+                    .ok_or(Error::NotFound)?
+                    .restaurant
+            )?
+            .ok_or(Error::NotFound)?
+            .name
     );
 
-    let associations = state.all_associations()?.into_iter()
+    let associations = state
+        .all_associations()?
+        .into_iter()
         .map(|x| (x.slack_name, x.sharebill_account))
         .collect::<HashMap<_, _>>();
 
@@ -423,8 +548,9 @@ fn cmd_sharebill(
 
     let credit_account = match args.len() {
         0 => associations.get(user_name).map(|x| x as &str),
-        _ => Some(args)
-    }.ok_or(Error::MissingAssociation(user_name.to_owned()))?;
+        _ => Some(args),
+    }
+    .ok_or(Error::MissingAssociation(user_name.to_owned()))?;
 
     let total = debits.values().fold(Rational::zero(), |acc, x| acc + x);
 
@@ -434,12 +560,12 @@ fn cmd_sharebill(
     let post = sharebill::models::Post {
         meta: sharebill::models::Meta {
             description: description,
-            timestamp: time::now_utc()
+            timestamp: time::now_utc(),
         },
         transaction: sharebill::models::Transaction {
             debits: debits,
-            credits: credits
-        }
+            credits: credits,
+        },
     };
 
     let target_url = format!("{}post/{}", &sharebill_url, &uuid::Uuid::new_v4());
@@ -458,7 +584,10 @@ fn cmd_sharebill(
 
     Ok(SlackResponse {
         response_type: ResponseType::InChannel,
-        text: format!("💸 Posted to <{}|Sharebill> and closed order ✔️", target_url),
+        text: format!(
+            "💸 Posted to <{}|Sharebill> and closed order ✔️",
+            target_url
+        ),
         ..Default::default()
     })
 }
@@ -466,11 +595,15 @@ fn cmd_sharebill(
 fn cmd_suggest(
     &CommandContext {
         state_mutex,
-        env: &web::Env { ref maybe_sharebill_url, ref sharebill_cookies, .. },
+        env:
+            &web::Env {
+                ref maybe_sharebill_url,
+                ref sharebill_cookies,
+                ..
+            },
         ..
-    }: &CommandContext
-) -> Result<SlackResponse, Error>
-{
+    }: &CommandContext,
+) -> Result<SlackResponse, Error> {
     #[derive(Deserialize, Debug)]
     struct Row {
         pub key: String,
@@ -479,10 +612,12 @@ fn cmd_suggest(
 
     #[derive(Deserialize)]
     struct Balances {
-        pub rows: Vec<Row>
+        pub rows: Vec<Row>,
     }
 
-    let sharebill_url = maybe_sharebill_url.as_ref().ok_or(Error::MissingConfig("web.sharebill_url"))?;
+    let sharebill_url = maybe_sharebill_url
+        .as_ref()
+        .ok_or(Error::MissingConfig("web.sharebill_url"))?;
 
     let state = state_mutex.lock()?;
     let debits = generate_bill(&state)?;
@@ -497,10 +632,14 @@ fn cmd_suggest(
     }
     let balances: Balances = res.json()?;
 
-    let mut balances = balances.rows.into_iter()
+    let mut balances = balances
+        .rows
+        .into_iter()
         .filter(|row| debits.contains_key(&row.key))
         .map(|row| {
-            let this_meal = debits.get(&row.key).expect("Guaranteed by filter on the line above");
+            let this_meal = debits
+                .get(&row.key)
+                .expect("Guaranteed by filter on the line above");
             let new_balance = &row.value - this_meal;
             (row.key, row.value, new_balance)
         })
@@ -513,7 +652,13 @@ fn cmd_suggest(
 
     writeln!(&mut buf, "💁 The poorest people on sharebill are:")?;
     for (account_name, old_balance, new_balance) in balances.into_iter().take(3) {
-        writeln!(&mut buf, " - {} ({}, projected new balance: {})", account_name, old_balance.0.to_integer(), new_balance.0.to_integer())?;
+        writeln!(
+            &mut buf,
+            " - {} ({}, projected new balance: {})",
+            account_name,
+            old_balance.0.to_integer(),
+            new_balance.0.to_integer()
+        )?;
     }
 
     Ok(SlackResponse {
@@ -523,7 +668,11 @@ fn cmd_suggest(
     })
 }
 
-fn cmd_overhead(&CommandContext { state_mutex, args, .. }: &CommandContext) -> Result<SlackResponse, Error> {
+fn cmd_overhead(
+    &CommandContext {
+        state_mutex, args, ..
+    }: &CommandContext,
+) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
 
@@ -531,7 +680,9 @@ fn cmd_overhead(&CommandContext { state_mutex, args, .. }: &CommandContext) -> R
         Ok(SlackResponse {
             text: format!(
                 "💁 Overhead is set to {}.{:02}",
-                open_order.overhead_in_cents / 100, open_order.overhead_in_cents % 100),
+                open_order.overhead_in_cents / 100,
+                open_order.overhead_in_cents % 100
+            ),
             ..Default::default()
         })
     } else {
@@ -546,8 +697,11 @@ fn cmd_overhead(&CommandContext { state_mutex, args, .. }: &CommandContext) -> R
             response_type: ResponseType::InChannel,
             text: format!(
                 "💁 Overhead changed from {}.{:02} to {}.{:02}",
-                old_overhead_in_cents / 100, old_overhead_in_cents % 100,
-                overhead_in_cents / 100, overhead_in_cents % 100),
+                old_overhead_in_cents / 100,
+                old_overhead_in_cents % 100,
+                overhead_in_cents / 100,
+                overhead_in_cents % 100
+            ),
             ..Default::default()
         })
     }
@@ -565,7 +719,7 @@ fn cmd_sudo(cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
             user_name: user_name,
             args: args,
             ..*cmd_ctx
-        }
+        },
     )
 }
 
@@ -598,21 +752,21 @@ type CommandHandler = Fn(&CommandContext) -> Result<SlackResponse, Error> + Sync
 lazy_static! {
     static ref COMMAND_MAP: HashMap<&'static str, Box<CommandHandler>> = {
         let mut m: HashMap<&'static str, Box<CommandHandler>> = HashMap::new();
-        m.insert("associate",   Box::new(cmd_associate));
-        m.insert("clear",       Box::new(cmd_clear));
-        m.insert("closeorder",  Box::new(cmd_closeorder));
-        m.insert("help",        Box::new(cmd_help));
-        m.insert("openorder",   Box::new(cmd_openorder));
-        m.insert("order",       Box::new(cmd_order));
-        m.insert("overhead",    Box::new(cmd_overhead));
-        m.insert("price",       Box::new(cmd_price));
-        m.insert("repeat",      Box::new(cmd_repeat));
+        m.insert("associate", Box::new(cmd_associate));
+        m.insert("clear", Box::new(cmd_clear));
+        m.insert("closeorder", Box::new(cmd_closeorder));
+        m.insert("help", Box::new(cmd_help));
+        m.insert("openorder", Box::new(cmd_openorder));
+        m.insert("order", Box::new(cmd_order));
+        m.insert("overhead", Box::new(cmd_overhead));
+        m.insert("price", Box::new(cmd_price));
+        m.insert("repeat", Box::new(cmd_repeat));
         m.insert("restaurants", Box::new(cmd_restaurants));
-        m.insert("search",      Box::new(cmd_search));
-        m.insert("sharebill",   Box::new(cmd_sharebill));
-        m.insert("sudo",        Box::new(cmd_sudo));
-        m.insert("suggest",     Box::new(cmd_suggest));
-        m.insert("summary",     Box::new(cmd_summary));
+        m.insert("search", Box::new(cmd_search));
+        m.insert("sharebill", Box::new(cmd_sharebill));
+        m.insert("sudo", Box::new(cmd_sudo));
+        m.insert("suggest", Box::new(cmd_suggest));
+        m.insert("summary", Box::new(cmd_summary));
         m
     };
 }
@@ -620,28 +774,25 @@ lazy_static! {
 pub fn exec_cmd(cmd: &str, cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
     match COMMAND_MAP.get(cmd) {
         Some(cmd) => cmd(cmd_ctx),
-        _ =>
-            Ok(SlackResponse {
-                text: format!("😕 Oh man! I don't understand /ffs {} {}\n\
-                    Try /ffs help", &cmd, &cmd_ctx.args),
-                ..Default::default()
-            })
+        _ => Ok(SlackResponse {
+            text: format!(
+                "😕 Oh man! I don't understand /ffs {} {}\n\
+                 Try /ffs help",
+                &cmd, &cmd_ctx.args
+            ),
+            ..Default::default()
+        }),
     }
 }
 
-fn slack_core(
-    maybe_slack_token: &Option<&str>,
-    req: &mut Request,
-) ->
-    Result<SlackResponse, Error>
-{
+fn slack_core(maybe_slack_token: &Option<&str>, req: &mut Request) -> Result<SlackResponse, Error> {
     let hashmap = req.get::<UrlEncodedBody>()?;
 
     if let &Some(slack_token) = maybe_slack_token {
-        let given_token =
-            hashmap.get("token")
-                .and_then(|tokens| tokens.get(0))
-                .map(String::as_ref);
+        let given_token = hashmap
+            .get("token")
+            .and_then(|tokens| tokens.get(0))
+            .map(String::as_ref);
 
         if given_token != Some(slack_token) {
             return Err(Error::InvalidSlackToken);
@@ -663,7 +814,9 @@ fn slack_core(
     let cmd = split.next().unwrap();
     let args = split.next().unwrap_or("");
 
-    let user_name = &hashmap.get("user_name").ok_or(Error::MissingArgument("user_name"))?[0];
+    let user_name = &hashmap
+        .get("user_name")
+        .ok_or(Error::MissingArgument("user_name"))?[0];
 
     exec_cmd(
         cmd,
@@ -671,8 +824,8 @@ fn slack_core(
             state_mutex: &state_mutex,
             args: args,
             user_name: user_name,
-            env: &env
-        }
+            env: &env,
+        },
     )
 }
 
@@ -688,8 +841,9 @@ pub fn slack(slack_token: &Option<&str>, req: &mut Request) -> IronResult<Respon
             serde_json::to_string(&SlackResponse {
                 text: format!("🙅 {:?}", &err),
                 ..Default::default()
-            }).unwrap(),
+            })
+            .unwrap(),
             Header(ContentType::json()),
-        )))
+        ))),
     }
 }

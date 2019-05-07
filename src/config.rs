@@ -2,8 +2,8 @@ extern crate getopts;
 extern crate serde_json;
 
 use std::env;
-use std::io;
 use std::fs;
+use std::io;
 
 quick_error! {
     #[derive(Debug)]
@@ -16,13 +16,15 @@ quick_error! {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct DbConfig {
-    #[serde(default="default_connection_string")]
+    #[serde(default = "default_connection_string")]
     pub connection_string: String,
 
     #[serde(default)]
     pub run_migrations: bool,
 }
-fn default_connection_string() -> String { ":memory:".to_owned() }
+fn default_connection_string() -> String {
+    ":memory:".to_owned()
+}
 
 impl DbConfig {
     fn new() -> DbConfig {
@@ -35,22 +37,28 @@ impl DbConfig {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct WebConfig {
-    #[serde(default="default_bind")]
+    #[serde(default = "default_bind")]
     pub bind: String,
 
-    #[serde(default="default_base")]
+    #[serde(default = "default_base")]
     pub base: String,
 
     pub slack_token: Option<String>,
 
     pub sharebill_url: Option<String>,
 
-    #[serde(default="default_cookies")]
+    #[serde(default = "default_cookies")]
     pub sharebill_cookies: Vec<String>,
 }
-fn default_bind() -> String { "localhost:3000".to_owned() }
-fn default_base() -> String { "http://localhost:3000/".to_owned() }
-fn default_cookies() -> Vec<String> { vec![] }
+fn default_bind() -> String {
+    "localhost:3000".to_owned()
+}
+fn default_base() -> String {
+    "http://localhost:3000/".to_owned()
+}
+fn default_cookies() -> Vec<String> {
+    vec![]
+}
 
 impl WebConfig {
     fn new() -> WebConfig {
@@ -104,7 +112,7 @@ impl Config {
 pub enum ConfigResult {
     Some(Config),
     Help,
-    Err(Error)
+    Err(Error),
 }
 
 const USAGE: &'static str = "Usage: fishsticks [options] CONFIG_FILE...";
@@ -112,11 +120,21 @@ const USAGE: &'static str = "Usage: fishsticks [options] CONFIG_FILE...";
 fn create_opts() -> getopts::Options {
     let mut opts = getopts::Options::new();
     opts.optflag("h", "help", "print this help menu");
-    opts.optopt("d", "database", "specify database file. Use the special \
-        value :memory: to use a volatile in-memory database", "DATABASE");
+    opts.optopt(
+        "d",
+        "database",
+        "specify database file. Use the special \
+         value :memory: to use a volatile in-memory database",
+        "DATABASE",
+    );
     opts.optflag("", "migrations", "run pending database migrations");
-    opts.optopt("", "bind", "specify bind address for the http server. The \
-        default value is localhost:3000", "ADDRESS");
+    opts.optopt(
+        "",
+        "bind",
+        "specify bind address for the http server. The \
+         default value is localhost:3000",
+        "ADDRESS",
+    );
     opts
 }
 
@@ -154,7 +172,9 @@ pub fn read_config() -> ConfigResult {
 
     ConfigResult::Some(Config {
         database: DbConfig {
-            connection_string: matches.opt_str("database").unwrap_or(cfg.database.connection_string),
+            connection_string: matches
+                .opt_str("database")
+                .unwrap_or(cfg.database.connection_string),
             run_migrations: matches.opt_present("migrations") || cfg.database.run_migrations,
         },
         web: WebConfig {

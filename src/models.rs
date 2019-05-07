@@ -1,7 +1,7 @@
-use std;
 use diesel;
 use diesel::types::*;
 use schema::{menu_items, order_items};
+use std;
 
 macro_rules! generate_id_type {
     ( $x:ident ) => {
@@ -9,27 +9,32 @@ macro_rules! generate_id_type {
         pub struct $x(i32);
 
         impl FromSql<Integer, diesel::sqlite::Sqlite> for $x {
-            fn from_sql(bytes: Option<&<diesel::sqlite::Sqlite as diesel::backend::Backend>::RawValue>) -> Result<Self, Box<std::error::Error + Send + Sync>> {
-                FromSql::<Integer, diesel::sqlite::Sqlite>::from_sql(bytes)
-                    .map(|x| $x(x))
+            fn from_sql(
+                bytes: Option<&<diesel::sqlite::Sqlite as diesel::backend::Backend>::RawValue>,
+            ) -> Result<Self, Box<std::error::Error + Send + Sync>> {
+                FromSql::<Integer, diesel::sqlite::Sqlite>::from_sql(bytes).map(|x| $x(x))
             }
         }
 
         impl FromSqlRow<Integer, diesel::sqlite::Sqlite> for $x {
             fn build_from_row<T>(row: &mut T) -> Result<Self, Box<std::error::Error + Send + Sync>>
-                where T : diesel::row::Row<diesel::sqlite::Sqlite>
+            where
+                T: diesel::row::Row<diesel::sqlite::Sqlite>,
             {
-                FromSqlRow::<Integer, diesel::sqlite::Sqlite>::build_from_row(row)
-                    .map(|x| $x(x))
+                FromSqlRow::<Integer, diesel::sqlite::Sqlite>::build_from_row(row).map(|x| $x(x))
             }
         }
 
         impl From<i32> for $x {
-            fn from(src: i32) -> Self { $x(src) }
+            fn from(src: i32) -> Self {
+                $x(src)
+            }
         }
 
         impl From<$x> for i32 {
-            fn from(src: $x) -> Self { src.0 }
+            fn from(src: $x) -> Self {
+                src.0
+            }
         }
 
         impl std::fmt::Display for $x {
@@ -60,7 +65,7 @@ pub struct Menu {
 }
 
 #[derive(Debug, Queryable, Serialize, Identifiable, Associations)]
-#[has_many(order_items, foreign_key="menu_item")]
+#[has_many(order_items, foreign_key = "menu_item")]
 pub struct MenuItem {
     pub id: MenuItemId,
     pub menu: MenuId,

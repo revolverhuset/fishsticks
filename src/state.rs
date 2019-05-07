@@ -27,7 +27,10 @@ pub enum Query<'a> {
     FuzzyString(&'a str),
 }
 
-impl<'a, 'b> Query<'a> where 'b: 'a {
+impl<'a, 'b> Query<'a>
+where
+    'b: 'a,
+{
     pub fn interpret_string(input: &'b str) -> Query<'a> {
         match input.parse::<i32>() {
             Ok(integer) => Query::ExactInteger(integer),
@@ -45,7 +48,7 @@ fn timestamp() -> i32 {
 }
 
 fn distance(a: &str, b: &str) -> usize {
-    ((1.-strsim::jaro_winkler(&a.to_lowercase(), &b.to_lowercase())) * 1000.) as usize
+    ((1. - strsim::jaro_winkler(&a.to_lowercase(), &b.to_lowercase())) * 1000.) as usize
 }
 
 impl State {
@@ -59,9 +62,9 @@ impl State {
         use schema::restaurants;
 
         #[derive(Insertable)]
-        #[table_name="restaurants"]
+        #[table_name = "restaurants"]
         struct NewRestaurant<'a> {
-            name: &'a str
+            name: &'a str,
         }
 
         let new_restaurant = NewRestaurant { name: name };
@@ -72,8 +75,8 @@ impl State {
 
         let restaurant_id = restaurants::table
             .filter(restaurants::name.eq(name))
-            .load::<Restaurant>(&self.db_connection)?
-            [0].id;
+            .load::<Restaurant>(&self.db_connection)?[0]
+            .id;
 
         Ok(restaurant_id)
     }
@@ -109,8 +112,7 @@ impl State {
         Ok(menus
             .filter(restaurant.eq(i32::from(restaurant_id)))
             .order(imported.desc())
-            .load::<Menu>(&self.db_connection)?
-        )
+            .load::<Menu>(&self.db_connection)?)
     }
 
     pub fn current_menu_for_restaurant(&self, restaurant_id: RestaurantId) -> Result<Menu, Error> {
@@ -121,8 +123,8 @@ impl State {
             .order(imported.desc())
             .limit(1)
             .load::<Menu>(&self.db_connection)?
-            .pop().ok_or(Error::NotFound)?
-        )
+            .pop()
+            .ok_or(Error::NotFound)?)
     }
 
     pub fn menu_object(&self, menu_id: MenuId) -> Result<Option<Menu>, Error> {
@@ -131,8 +133,7 @@ impl State {
         Ok(menus
             .find(i32::from(menu_id))
             .load::<Menu>(&self.db_connection)?
-            .pop()
-        )
+            .pop())
     }
 
     pub fn menu(&self, menu_id: MenuId) -> Result<Vec<MenuItem>, Error> {
@@ -140,14 +141,16 @@ impl State {
 
         Ok(menu_items
             .filter(menu.eq(i32::from(menu_id)))
-            .load::<MenuItem>(&self.db_connection)?
-        )
+            .load::<MenuItem>(&self.db_connection)?)
     }
 
-    pub fn ingest_menu(&self, restaurant_id: RestaurantId, menu: &takedown::Menu) -> Result<(), Error> {
-        self.db_connection.transaction(|| {
-            ingest::menu(&self.db_connection, i32::from(restaurant_id), menu)
-        })?;
+    pub fn ingest_menu(
+        &self,
+        restaurant_id: RestaurantId,
+        menu: &takedown::Menu,
+    ) -> Result<(), Error> {
+        self.db_connection
+            .transaction(|| ingest::menu(&self.db_connection, i32::from(restaurant_id), menu))?;
         Ok(())
     }
 
@@ -169,7 +172,7 @@ impl State {
         use schema::orders;
 
         #[derive(Insertable)]
-        #[table_name="orders"]
+        #[table_name = "orders"]
         struct NewOrder {
             pub menu: i32,
             pub overhead_in_cents: i32,
@@ -187,7 +190,8 @@ impl State {
                 opened: timestamp(),
             };
 
-            diesel::insert(&new_order).into(orders::table)
+            diesel::insert(&new_order)
+                .into(orders::table)
                 .execute(&self.db_connection)?;
 
             Ok(())
@@ -228,16 +232,13 @@ impl State {
     pub fn query_menu(&self, menu_id: MenuId, query: &Query) -> Result<Vec<MenuItem>, Error> {
         use schema::menu_items::dsl::*;
 
-        let all_items = menu_items
-            .filter(menu.eq(i32::from(menu_id)));
+        let all_items = menu_items.filter(menu.eq(i32::from(menu_id)));
 
         match *query {
-            Query::ExactInteger(integer) =>
-                Ok(all_items
-                    .filter(number.eq(integer))
-                    .limit(1)
-                    .load::<MenuItem>(&self.db_connection)?
-                ),
+            Query::ExactInteger(integer) => Ok(all_items
+                .filter(number.eq(integer))
+                .limit(1)
+                .load::<MenuItem>(&self.db_connection)?),
             Query::FuzzyString(string) => {
                 let mut items = all_items.load::<MenuItem>(&self.db_connection)?;
                 items.sort_by_key(|x| distance(&string, &x.name));
@@ -246,11 +247,16 @@ impl State {
         }
     }
 
-    pub fn add_order_item(&self, order: OrderId, person_name: &str, menu_item: MenuItemId) -> Result<(), Error> {
+    pub fn add_order_item(
+        &self,
+        order: OrderId,
+        person_name: &str,
+        menu_item: MenuItemId,
+    ) -> Result<(), Error> {
         use schema::order_items;
 
         #[derive(Insertable)]
-        #[table_name="order_items"]
+        #[table_name = "order_items"]
         struct NewOrderItem<'a> {
             pub order: i32,
             pub person_name: &'a str,
@@ -263,7 +269,8 @@ impl State {
             menu_item: i32::from(menu_item),
         };
 
-        diesel::insert(&new_order_item).into(order_items::table)
+        diesel::insert(&new_order_item)
+            .into(order_items::table)
             .execute(&self.db_connection)?;
 
         Ok(())
@@ -275,16 +282,16 @@ impl State {
         diesel::delete(
             order_items::table
                 .filter(order_items::order.eq(i32::from(order)))
-                .filter(order_items::person_name.eq(person_name))
+                .filter(order_items::person_name.eq(person_name)),
         )
-            .execute(&self.db_connection)?;
+        .execute(&self.db_connection)?;
 
         Ok(())
     }
 
     pub fn items_in_order(&self, order_id: OrderId) -> Result<Vec<(MenuItem, OrderItem)>, Error> {
-        use schema::order_items;
         use schema::menu_items;
+        use schema::order_items;
 
         let result = menu_items::table
             .inner_join(order_items::table)
@@ -299,7 +306,7 @@ impl State {
         use schema::sharebill_associations;
 
         #[derive(Insertable)]
-        #[table_name="sharebill_associations"]
+        #[table_name = "sharebill_associations"]
         struct NewItem<'a> {
             slack_name: &'a str,
             sharebill_account: &'a str,
@@ -322,13 +329,14 @@ impl State {
 
         Ok(sharebill_associations
             .order(slack_name.asc())
-            .load::<SharebillAssociation>(&self.db_connection)?
-        )
+            .load::<SharebillAssociation>(&self.db_connection)?)
     }
 
-    pub fn previous_orders(&self, slack_name: &str, restaurant: RestaurantId) ->
-        Result<Vec<MenuItem>, Error>
-    {
+    pub fn previous_orders(
+        &self,
+        slack_name: &str,
+        restaurant: RestaurantId,
+    ) -> Result<Vec<MenuItem>, Error> {
         use diesel::expression::sql_literal::sql;
         use diesel::types::*;
 

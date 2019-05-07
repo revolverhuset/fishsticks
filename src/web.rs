@@ -4,11 +4,11 @@ extern crate router;
 extern crate serde_json;
 extern crate urlencoded;
 
-use models::{self, RestaurantId, MenuId};
-use std::fmt::Display;
-use std::sync::{Arc, Mutex};
+use models::{self, MenuId, RestaurantId};
 use slack;
 use state;
+use std::fmt::Display;
+use std::sync::{Arc, Mutex};
 
 use self::iron::prelude::*;
 use self::iron::{status, typemap, BeforeMiddleware};
@@ -25,10 +25,7 @@ quick_error! {
 impl From<state::Error> for iron::IronError {
     fn from(err: state::Error) -> iron::IronError {
         let msg = format!("{:?}", &err);
-        iron::IronError::new(
-            err,
-            (status::InternalServerError, msg)
-        )
+        iron::IronError::new(err, (status::InternalServerError, msg))
     }
 }
 
@@ -40,9 +37,7 @@ struct Layout<'a> {
 
 impl<'a> Layout<'a> {
     fn new(body: &'a Display) -> Layout<'a> {
-        Layout {
-            body: body
-        }
+        Layout { body: body }
     }
 }
 
@@ -56,7 +51,9 @@ impl<'a> iron::modifier::Modifier<iron::Response> for Layout<'a> {
 #[derive(Clone)]
 pub struct StateContainer(pub Arc<Mutex<state::State>>);
 
-impl typemap::Key for StateContainer { type Value = StateContainer; }
+impl typemap::Key for StateContainer {
+    type Value = StateContainer;
+}
 
 impl BeforeMiddleware for StateContainer {
     fn before(&self, req: &mut Request) -> IronResult<()> {
@@ -74,7 +71,9 @@ pub struct Env {
 #[derive(Clone)]
 pub struct EnvContainer(pub Arc<Env>);
 
-impl typemap::Key for EnvContainer { type Value = EnvContainer; }
+impl typemap::Key for EnvContainer {
+    type Value = EnvContainer;
+}
 
 impl BeforeMiddleware for EnvContainer {
     fn before(&self, req: &mut Request) -> IronResult<()> {
@@ -84,7 +83,13 @@ impl BeforeMiddleware for EnvContainer {
 }
 
 fn index(req: &mut Request) -> IronResult<Response> {
-    let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
+    let state = req
+        .extensions
+        .get::<StateContainer>()
+        .unwrap()
+        .0
+        .lock()
+        .unwrap();
 
     #[derive(BartDisplay)]
     #[template = "templates/index.html"]
@@ -95,8 +100,8 @@ fn index(req: &mut Request) -> IronResult<Response> {
     Ok(Response::with((
         status::Ok,
         Layout::new(&Index {
-            restaurants: state.restaurants()?
-        })
+            restaurants: state.restaurants()?,
+        }),
     )))
 }
 
@@ -105,24 +110,27 @@ fn create_restaurant(req: &mut Request) -> IronResult<Response> {
     use self::iron::modifiers::Header;
     let hashmap = req.get::<UrlEncodedBody>().unwrap();
 
-    let name: Option<&str> =
-        hashmap.get("name")
-            .and_then(|x| x.get(0))
-            .map(String::as_ref);
+    let name: Option<&str> = hashmap
+        .get("name")
+        .and_then(|x| x.get(0))
+        .map(String::as_ref);
 
     if name.is_none() {
         return Ok(Response::with(status::BadRequest));
     }
     let name = name.unwrap();
 
-    let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
+    let state = req
+        .extensions
+        .get::<StateContainer>()
+        .unwrap()
+        .0
+        .lock()
+        .unwrap();
     let ref env = req.extensions.get::<EnvContainer>().unwrap().0;
     let id = match state.create_restaurant(name) {
         Ok(id) => id,
-        Err(_) => return Ok(Response::with((
-            status::InternalServerError,
-            "Error!",
-        )))
+        Err(_) => return Ok(Response::with((status::InternalServerError, "Error!"))),
     };
 
     let created_url = format!("{}restaurant/{}", &env.base_url, i32::from(id));
@@ -135,13 +143,23 @@ fn create_restaurant(req: &mut Request) -> IronResult<Response> {
 }
 
 fn restaurant(req: &mut Request) -> IronResult<Response> {
-    let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
+    let state = req
+        .extensions
+        .get::<StateContainer>()
+        .unwrap()
+        .0
+        .lock()
+        .unwrap();
 
-    let restaurant_id : RestaurantId =
-        req.extensions.get::<Router>().unwrap()
-            .find("id").unwrap()
-            .parse::<i32>().unwrap()
-            .into();
+    let restaurant_id: RestaurantId = req
+        .extensions
+        .get::<Router>()
+        .unwrap()
+        .find("id")
+        .unwrap()
+        .parse::<i32>()
+        .unwrap()
+        .into();
 
     #[derive(BartDisplay)]
     #[template = "templates/restaurant.html"]
@@ -155,22 +173,35 @@ fn restaurant(req: &mut Request) -> IronResult<Response> {
         Layout::new(&Restaurant {
             restaurant: state.restaurant(restaurant_id)?.unwrap(),
             menus: state.menus_for_restaurant(restaurant_id)?,
-        })
+        }),
     )))
 }
 
 fn ingest(req: &mut Request) -> IronResult<Response> {
-    let restaurant_id : RestaurantId =
-        req.extensions.get::<Router>().unwrap()
-            .find("id").unwrap()
-            .parse::<i32>().unwrap()
-            .into();
+    let restaurant_id: RestaurantId = req
+        .extensions
+        .get::<Router>()
+        .unwrap()
+        .find("id")
+        .unwrap()
+        .parse::<i32>()
+        .unwrap()
+        .into();
 
-    match req.get::<bodyparser::Raw>().map(|x| x.map(|x| serde_json::from_str(&x))) {
+    match req
+        .get::<bodyparser::Raw>()
+        .map(|x| x.map(|x| serde_json::from_str(&x)))
+    {
         Ok(Some(Ok(new_menu))) => {
             println!("{:?}", &new_menu);
 
-            let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
+            let state = req
+                .extensions
+                .get::<StateContainer>()
+                .unwrap()
+                .0
+                .lock()
+                .unwrap();
             state.ingest_menu(restaurant_id, &new_menu)?;
 
             Ok(Response::with(status::Ok))
@@ -182,13 +213,23 @@ fn ingest(req: &mut Request) -> IronResult<Response> {
 }
 
 fn menu(req: &mut Request) -> IronResult<Response> {
-    let state = req.extensions.get::<StateContainer>().unwrap().0.lock().unwrap();
+    let state = req
+        .extensions
+        .get::<StateContainer>()
+        .unwrap()
+        .0
+        .lock()
+        .unwrap();
 
-    let menu_id: MenuId =
-        req.extensions.get::<Router>().unwrap()
-            .find("id").unwrap()
-            .parse::<i32>().unwrap()
-            .into();
+    let menu_id: MenuId = req
+        .extensions
+        .get::<Router>()
+        .unwrap()
+        .find("id")
+        .unwrap()
+        .parse::<i32>()
+        .unwrap()
+        .into();
 
     #[derive(BartDisplay)]
     #[template = "templates/menu.html"]
@@ -199,8 +240,8 @@ fn menu(req: &mut Request) -> IronResult<Response> {
     Ok(Response::with((
         status::Ok,
         Layout::new(&Menu {
-            menu: state.menu(menu_id)?
-        })
+            menu: state.menu(menu_id)?,
+        }),
     )))
 }
 
@@ -211,23 +252,18 @@ pub fn run(
     slack_token: Option<String>,
     sharebill_url: Option<String>,
     sharebill_cookies: Vec<String>,
-) ->
-    Result<(), Error>
-{
+) -> Result<(), Error> {
     let mut router = Router::new();
     router.get("/", index, "index");
     router.post("/restaurant/", create_restaurant, "create_restaurant");
     router.get("/restaurant/:id", restaurant, "restaurant");
     router.post("/restaurant/:id", ingest, "ingest");
     router.get("/menu/:id", menu, "menu");
-    router.post("/slack",
-        move |req: &mut Request| {
-            slack::slack(
-                &slack_token.as_ref().map(String::as_ref),
-                req
-            )
-        },
-        "slack");
+    router.post(
+        "/slack",
+        move |req: &mut Request| slack::slack(&slack_token.as_ref().map(String::as_ref), req),
+        "slack",
+    );
 
     let mut chain = Chain::new(router);
     chain.link_before(StateContainer(state));

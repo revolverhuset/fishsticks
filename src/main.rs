@@ -1,9 +1,15 @@
-#[macro_use] extern crate bart_derive;
-#[macro_use] extern crate diesel;
-#[macro_use] extern crate diesel_codegen;
-#[macro_use] extern crate lazy_static;
-#[macro_use] extern crate quick_error;
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate bart_derive;
+#[macro_use]
+extern crate diesel;
+#[macro_use]
+extern crate diesel_codegen;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate quick_error;
+#[macro_use]
+extern crate serde_derive;
 extern crate crossbeam;
 extern crate matrix_bot_api;
 extern crate sharebill;
@@ -28,21 +34,24 @@ fn main() {
         config::ConfigResult::Help => {
             config::write_help(&mut std::io::stdout()).unwrap();
             return;
-        },
+        }
         config::ConfigResult::Err(err) => {
             println!("{:?}", &err);
             panic!(err)
-        },
+        }
     };
 
-    let db_connection = db::connect_database(&config.database.connection_string, config.database.run_migrations);
+    let db_connection = db::connect_database(
+        &config.database.connection_string,
+        config.database.run_migrations,
+    );
     let state = Arc::new(Mutex::new(state::State::new(db_connection)));
 
     crossbeam::scope(|scope| {
         let web = {
             let state = state.clone();
             let config = config.clone();
-            scope.spawn(||
+            scope.spawn(|| {
                 web::run(
                     state,
                     &config.web.bind,
@@ -51,25 +60,20 @@ fn main() {
                     config.web.sharebill_url,
                     config.web.sharebill_cookies,
                 )
-            )
+            })
         };
 
-        let env =
-            web::Env {
-                base_url: config.web.base,
-                maybe_sharebill_url: config.web.sharebill_url,
-                sharebill_cookies: config.web.sharebill_cookies,
-            };
+        let env = web::Env {
+            base_url: config.web.base,
+            maybe_sharebill_url: config.web.sharebill_url,
+            sharebill_cookies: config.web.sharebill_cookies,
+        };
 
-        let matrix = config.matrix.map(|matrix| scope.spawn(move ||
-            matrix::run(
-                state,
-                env,
-                &matrix.user,
-                &matrix.password,
-                &matrix.server,
-            )
-        ));
+        let matrix = config.matrix.map(|matrix| {
+            scope.spawn(move || {
+                matrix::run(state, env, &matrix.user, &matrix.password, &matrix.server)
+            })
+        });
 
         web.join().unwrap();
         matrix.map(|x| x.join().unwrap());

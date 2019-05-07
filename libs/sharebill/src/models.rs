@@ -14,7 +14,7 @@ pub struct Meta {
 
 #[derive(Serialize)]
 pub struct Transaction {
-    #[serde(rename="debets")]
+    #[serde(rename = "debets")]
     pub debits: HashMap<String, Rational>,
 
     pub credits: HashMap<String, Rational>,
@@ -27,7 +27,8 @@ pub struct Post {
 }
 
 fn serialize_time<S>(t: &time::Tm, ser: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer
+where
+    S: serde::Serializer,
 {
     ser.serialize_str(&format!("{}", t.rfc3339()))
 }
@@ -36,8 +37,8 @@ fn serialize_time<S>(t: &time::Tm, ser: S) -> Result<S::Ok, S::Error>
 mod test {
     extern crate serde_json;
 
-    use super::*;
     use super::time;
+    use super::*;
     use std::collections::HashMap;
 
     fn fabricate_meta() -> Meta {
@@ -64,8 +65,8 @@ mod test {
     #[test]
     fn serializes_well() {
         let expected = "{\"meta\":{\"description\":\"Fabricated post\",\
-            \"timestamp\":\"2016-01-01T12:00:00Z\"},\
-            \"transaction\":{\"debets\":{},\"credits\":{}}}";
+                        \"timestamp\":\"2016-01-01T12:00:00Z\"},\
+                        \"transaction\":{\"debets\":{},\"credits\":{}}}";
 
         let post = fabricate_post();
         let serialized = serde_json::to_string(&post).unwrap();

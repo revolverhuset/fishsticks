@@ -1,11 +1,13 @@
-use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
+use diesel::Connection;
 
 embed_migrations!();
 
 pub fn connect_database(connection_string: &str, run_migrations: bool) -> SqliteConnection {
-    let connection = SqliteConnection::establish(connection_string)
-        .expect(&format!("Error connecting to database at {}", connection_string));
+    let connection = SqliteConnection::establish(connection_string).expect(&format!(
+        "Error connecting to database at {}",
+        connection_string
+    ));
 
     if run_migrations {
         embedded_migrations::run(&connection).unwrap();

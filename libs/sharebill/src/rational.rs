@@ -5,7 +5,7 @@ use std::fmt;
 use std::ops;
 use std::str::FromStr;
 
-use self::num::{BigRational, Zero, One, ToPrimitive};
+use self::num::{BigRational, One, ToPrimitive, Zero};
 use self::regex::Regex;
 
 quick_error! {
@@ -30,29 +30,36 @@ impl Rational {
 
 lazy_static! {
     static ref MIXED_NUMBER: Regex = {
-        Regex::new(r"^((-)?(\d+)( (\d+/\d+))?|(-?\d+/\d+))$")
-            .expect("Error in hard-coded regex")
+        Regex::new(r"^((-)?(\d+)( (\d+/\d+))?|(-?\d+/\d+))$").expect("Error in hard-coded regex")
     };
 }
 
 impl FromStr for Rational {
     type Err = ParseRationalError;
 
-    fn from_str(number : &str) -> Result<Rational, ParseRationalError> {
+    fn from_str(number: &str) -> Result<Rational, ParseRationalError> {
         use self::num::BigRational as BR;
 
         match MIXED_NUMBER.captures(number) {
             Some(groups) => {
                 // The parsing below must succeed because of the regex match, unwrap is ok.
                 let mut result = BR::zero();
-                if let Some(x) = groups.at(3) { result = result + x.parse::<BR>().unwrap(); }
-                if let Some(x) = groups.at(5) { result = result + x.parse::<BR>().unwrap(); }
-                if let Some(x) = groups.at(6) { result = result + x.parse::<BR>().unwrap(); }
-                if let Some(_) = groups.at(2) { result = -result; }
+                if let Some(x) = groups.at(3) {
+                    result = result + x.parse::<BR>().unwrap();
+                }
+                if let Some(x) = groups.at(5) {
+                    result = result + x.parse::<BR>().unwrap();
+                }
+                if let Some(x) = groups.at(6) {
+                    result = result + x.parse::<BR>().unwrap();
+                }
+                if let Some(_) = groups.at(2) {
+                    result = -result;
+                }
 
                 Ok(Rational(result))
-            },
-            None => Err(ParseRationalError::InvalidRationalNumber)
+            }
+            None => Err(ParseRationalError::InvalidRationalNumber),
         }
     }
 }
@@ -81,7 +88,8 @@ impl fmt::Display for Rational {
 use serde;
 impl serde::Serialize for Rational {
     fn serialize<S>(&self, ser: S) -> Result<S::Ok, S::Error>
-        where S: serde::Serializer
+    where
+        S: serde::Serializer,
     {
         ser.serialize_str(&format!("{}", self))
     }
@@ -92,11 +100,14 @@ impl serde::de::Visitor for RationalVisitor {
     type Value = Rational;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a string for a rational number, matching ^((-)?(\\d+)( (\\d+/\\d+))?|(-?\\d+/\\d+))$")
+        formatter.write_str(
+            "a string for a rational number, matching ^((-)?(\\d+)( (\\d+/\\d+))?|(-?\\d+/\\d+))$",
+        )
     }
 
     fn visit_str<E>(self, value: &str) -> Result<Rational, E>
-        where E: serde::de::Error
+    where
+        E: serde::de::Error,
     {
         Rational::from_str(value).map_err(|_| E::custom("Nope!"))
     }
@@ -104,14 +115,16 @@ impl serde::de::Visitor for RationalVisitor {
 
 impl serde::Deserialize for Rational {
     fn deserialize<D>(de: D) -> Result<Self, D::Error>
-        where D: serde::Deserializer
+    where
+        D: serde::Deserializer,
     {
         de.deserialize_str(RationalVisitor)
     }
 }
 
 impl<T> From<T> for Rational
-    where num::BigInt : From<T>
+where
+    num::BigInt: From<T>,
 {
     fn from(src: T) -> Rational {
         Rational(BigRational::new(src.into(), num::BigInt::one()))
@@ -172,8 +185,8 @@ impl ops::Div<Rational> for Rational {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use super::num::Zero;
+    use super::*;
 
     #[test]
     fn parse_mixed_number() {

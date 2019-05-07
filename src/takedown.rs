@@ -14,13 +14,13 @@ quick_error! {
 pub struct MenuItem {
     pub number: i32,
     pub name: String,
-    pub price: f64
+    pub price: f64,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Category {
     pub category: String,
-    pub entries: Vec<MenuItem>
+    pub entries: Vec<MenuItem>,
 }
 
 pub type Menu = Vec<Category>;
