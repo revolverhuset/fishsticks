@@ -37,49 +37,23 @@ fn cmd_repeat(
         .collect::<Vec<_>>();
 
     if menu_items.is_empty() {
-        return Ok(SlackResponse {
-            text: format!("🙍 I found no matches for you"),
-            ..Default::default()
-        });
+        return Ok(Response::RepeatNoMatch.into());
     }
 
     for menu_item in menu_items.iter() {
         state.add_order_item(open_order.id, user_name, menu_item.id)?;
     }
 
-    let summary = menu_items
-        .into_iter()
-        .map(|x| format!("{}. {}", x.number, x.name))
-        .collect::<Vec<_>>()
-        .join(", ");
-
-    Ok(SlackResponse {
-        response_type: ResponseType::InChannel,
-        text: format!(
-            "💁 {} the {} selection: {}",
-            affirm(),
-            adjective(),
-            summary
-        ),
-        ..Default::default()
-    })
+    Ok(Response::PlacedOrder { menu_items }.into())
 }
 
 fn cmd_restaurants(
     &CommandContext { state_mutex, .. }: &CommandContext,
 ) -> Result<SlackResponse, Error> {
     let state = state_mutex.lock()?;
-    let restaurants = state
-        .restaurants()?
-        .into_iter()
-        .map(|x| x.name)
-        .collect::<Vec<_>>()
-        .join(", ");
+    let restaurants = state.restaurants()?;
 
-    Ok(SlackResponse {
-        text: format!("I know of these restaurants: {}", &restaurants),
-        ..Default::default()
-    })
+    Ok(Response::Restaurants { restaurants }.into())
 }
 
 fn cmd_openorder(
@@ -95,39 +69,24 @@ fn cmd_openorder(
     let restaurant = match state.restaurant_by_name(args)? {
         Some(resturant) => resturant,
         None => {
-            let restaurants = state
-                .restaurants()?
-                .into_iter()
-                .map(|x| x.name)
-                .collect::<Vec<_>>()
-                .join(", ");
-
-            return Ok(SlackResponse {
-                text: format!(
-                    "Usage: /ffs openorder RESTAURANT\n\
-                     I know of these restaurants: {}",
-                    &restaurants
-                ),
-                ..Default::default()
-            });
+            return Ok(Response::RestaurantsNoMatch {
+                restaurants: state.restaurants()?,
+            }
+            .into())
         }
     };
 
     let menu = state.current_menu_for_restaurant(restaurant.id)?;
 
-    let _new_order = state.create_order(menu.id)?;
+    state.create_order(menu.id)?;
 
-    Ok(SlackResponse {
-        response_type: ResponseType::InChannel,
-        text: format!(
-            "🔔 Now taking orders from the \
-             <{}menu/{}|{} menu> 📝",
-            base_url,
-            i32::from(menu.id),
-            &restaurant.name
-        ),
-        ..Default::default()
-    })
+    let menu_url = format!("{}menu/{}", base_url, i32::from(menu.id));
+
+    Ok(Response::OpenedOrder {
+        menu_url,
+        restaurant_name: restaurant.name,
+    }
+    .into())
 }
 
 fn cmd_closeorder(
@@ -137,11 +96,7 @@ fn cmd_closeorder(
 
     state.close_current_order()?;
 
-    Ok(SlackResponse {
-        response_type: ResponseType::InChannel,
-        text: format!("No longer taking orders"),
-        ..Default::default()
-    })
+    Ok(Response::ClosedOrder.into())
 }
 
 fn cmd_search(
@@ -207,27 +162,19 @@ fn cmd_order(
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
 
-    match state.query_menu(open_order.menu, &query)?.first() {
+    match state.query_menu(open_order.menu, &query)?.pop() {
         Some(menu_item) => {
             state.add_order_item(open_order.id, user_name, menu_item.id)?;
 
-            Ok(SlackResponse {
-                response_type: ResponseType::InChannel,
-                text: format!(
-                    "💁 {} the {} {} {}. {}",
-                    affirm(),
-                    adjective(),
-                    noun(),
-                    &menu_item.number,
-                    &menu_item.name
-                ),
-                ..Default::default()
-            })
+            Ok(Response::PlacedOrder {
+                menu_items: vec![menu_item],
+            }
+            .into())
         }
-        None => Ok(SlackResponse {
-            text: format!("🙍 I found no matches for {:?}", &args),
-            ..Default::default()
-        }),
+        None => Ok(Response::OrderNoMatch {
+            search_string: args.to_string(),
+        }
+        .into()),
     }
 }
 
@@ -243,11 +190,7 @@ fn cmd_clear(
 
     state.clear_orders_for_person(open_order.id, user_name)?;
 
-    Ok(SlackResponse {
-        response_type: ResponseType::InChannel,
-        text: format!("🙍 So that's how it's going to be!"),
-        ..Default::default()
-    })
+    Ok(Response::Clear)
 }
 
 fn cmd_summary(
@@ -346,20 +289,9 @@ fn cmd_associate(
 ) -> Result<SlackResponse, Error> {
     if args.len() == 0 {
         let state = state_mutex.lock()?;
-        let associations = state
-            .all_associations()?
-            .into_iter()
-            .map(|x| format!("{} \u{2192} {}", &x.slack_name, &x.sharebill_account))
-            .collect::<Vec<_>>()
-            .join("\n    ");
+        let associations = state.all_associations()?;
 
-        Ok(SlackResponse {
-            text: format!(
-                "I have the following mappings from slack names to sharebill accounts:\n    {}",
-                &associations
-            ),
-            ..Default::default()
-        })
+        Ok(Response::Associations { associations }.into())
     } else {
         let split = args.split_whitespace().collect::<Vec<_>>();
         let (slack_name, sharebill_account) = match split.len() {
@@ -371,13 +303,11 @@ fn cmd_associate(
         let state = state_mutex.lock()?;
         state.set_association(slack_name, sharebill_account)?;
 
-        Ok(SlackResponse {
-            text: format!(
-                "Billing orders by {} to account {}. Got it 👍",
-                slack_name, sharebill_account
-            ),
-            ..Default::default()
-        })
+        Ok(Response::NewAssociation {
+            user_name: slack_name.to_string(),
+            sharebill_account: sharebill_account.to_string(),
+        }
+        .into())
     }
 }
 
@@ -513,14 +443,7 @@ fn cmd_sharebill(
 
     state.close_current_order()?;
 
-    Ok(SlackResponse {
-        response_type: ResponseType::InChannel,
-        text: format!(
-            "💸 Posted to <{}|Sharebill> and closed order ✔️",
-            target_url
-        ),
-        ..Default::default()
-    })
+    Ok(Response::Sharebill { url: target_url }.into())
 }
 
 fn cmd_suggest(
