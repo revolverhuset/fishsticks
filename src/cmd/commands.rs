@@ -1,5 +1,4 @@
 use state;
-use std;
 use web;
 use words::*;
 
@@ -7,61 +6,9 @@ use itertools::*;
 use sharebill::Rational;
 use std::collections::HashMap;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        StateError(err: state::Error) { from() }
-        UrlDecodingError(err: urlencoded::UrlDecodingError) { from() }
-        PoisonError
-        InputError { from(std::num::ParseFloatError) }
-        InvalidSlackToken
-        MissingAssociation(slack_name: String)
-        SerdeJson(err: serde_json::Error) { from() }
-        UnexpectedStatus(status: reqwest::StatusCode)
-        NotFound
-        MissingConfig(config_path: &'static str)
-        FormatError(err: std::fmt::Error) { from() }
-        ReqwestError(err: reqwest::Error) { from() }
-        MissingArgument(arg: &'static str)
-    }
-}
-
-impl<T> std::convert::From<std::sync::PoisonError<T>> for Error {
-    fn from(_err: std::sync::PoisonError<T>) -> Self {
-        Error::PoisonError
-    }
-}
-
-#[derive(Serialize)]
-pub enum ResponseType {
-    #[serde(rename = "ephemeral")]
-    Ephemeral,
-
-    #[serde(rename = "in_channel")]
-    InChannel,
-}
-
-impl Default for ResponseType {
-    fn default() -> ResponseType {
-        ResponseType::Ephemeral
-    }
-}
-
-#[derive(Serialize, Default)]
-pub struct SlackResponse {
-    pub response_type: ResponseType,
-    pub text: String,
-    pub unfurl_links: bool,
-}
-
-use std::sync::Mutex;
-
-pub struct CommandContext<'a, 'b, 'c, 'd> {
-    pub state_mutex: &'a Mutex<state::State>,
-    pub args: &'b str,
-    pub user_name: &'c str,
-    pub env: &'d web::Env,
-}
+use super::command_context::CommandContext;
+use super::error::*;
+use super::response::*;
 
 fn cmd_repeat(
     &CommandContext {
@@ -697,7 +644,7 @@ fn cmd_sudo(cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
     let cmd = split.next().ok_or(Error::MissingArgument("command"))?;
     let args = split.next().unwrap_or("");
 
-    exec_cmd(
+    super::exec_cmd(
         cmd,
         &CommandContext {
             user_name: user_name,
@@ -734,7 +681,7 @@ fn cmd_help(_cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
 type CommandHandler = Fn(&CommandContext) -> Result<SlackResponse, Error> + Sync;
 
 lazy_static! {
-    static ref COMMAND_MAP: HashMap<&'static str, &'static CommandHandler> = {
+    pub static ref COMMAND_MAP: HashMap<&'static str, &'static CommandHandler> = {
         let mut m: HashMap<&'static str, &'static CommandHandler> = HashMap::new();
         m.insert("associate", &cmd_associate);
         m.insert("clear", &cmd_clear);
@@ -753,18 +700,4 @@ lazy_static! {
         m.insert("summary", &cmd_summary);
         m
     };
-}
-
-pub fn exec_cmd(cmd: &str, cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
-    match COMMAND_MAP.get(cmd) {
-        Some(cmd) => cmd(cmd_ctx),
-        _ => Ok(SlackResponse {
-            text: format!(
-                "😕 Oh man! I don't understand /ffs {} {}\n\
-                 Try /ffs help",
-                &cmd, &cmd_ctx.args
-            ),
-            ..Default::default()
-        }),
-    }
 }
