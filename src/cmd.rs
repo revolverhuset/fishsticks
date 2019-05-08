@@ -734,23 +734,23 @@ fn cmd_help(_cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
 type CommandHandler = Fn(&CommandContext) -> Result<SlackResponse, Error> + Sync;
 
 lazy_static! {
-    static ref COMMAND_MAP: HashMap<&'static str, Box<CommandHandler>> = {
-        let mut m: HashMap<&'static str, Box<CommandHandler>> = HashMap::new();
-        m.insert("associate", Box::new(cmd_associate));
-        m.insert("clear", Box::new(cmd_clear));
-        m.insert("closeorder", Box::new(cmd_closeorder));
-        m.insert("help", Box::new(cmd_help));
-        m.insert("openorder", Box::new(cmd_openorder));
-        m.insert("order", Box::new(cmd_order));
-        m.insert("overhead", Box::new(cmd_overhead));
-        m.insert("price", Box::new(cmd_price));
-        m.insert("repeat", Box::new(cmd_repeat));
-        m.insert("restaurants", Box::new(cmd_restaurants));
-        m.insert("search", Box::new(cmd_search));
-        m.insert("sharebill", Box::new(cmd_sharebill));
-        m.insert("sudo", Box::new(cmd_sudo));
-        m.insert("suggest", Box::new(cmd_suggest));
-        m.insert("summary", Box::new(cmd_summary));
+    static ref COMMAND_MAP: HashMap<&'static str, &'static CommandHandler> = {
+        let mut m: HashMap<&'static str, &'static CommandHandler> = HashMap::new();
+        m.insert("associate", &cmd_associate);
+        m.insert("clear", &cmd_clear);
+        m.insert("closeorder", &cmd_closeorder);
+        m.insert("help", &cmd_help);
+        m.insert("openorder", &cmd_openorder);
+        m.insert("order", &cmd_order);
+        m.insert("overhead", &cmd_overhead);
+        m.insert("price", &cmd_price);
+        m.insert("repeat", &cmd_repeat);
+        m.insert("restaurants", &cmd_restaurants);
+        m.insert("search", &cmd_search);
+        m.insert("sharebill", &cmd_sharebill);
+        m.insert("sudo", &cmd_sudo);
+        m.insert("suggest", &cmd_suggest);
+        m.insert("summary", &cmd_summary);
         m
     };
 }
