@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use matrix_bot_api::handlers::{HandleResult, StatelessHandler};
 use matrix_bot_api::{MatrixBot, MessageType};
 
-use slack;
+use cmd;
 use state;
 use web;
 
@@ -26,9 +26,9 @@ pub fn run(
             let cmd = split.next().unwrap();
             let args = split.next().unwrap_or("");
 
-            let slack_response = slack::exec_cmd(
+            let slack_response = cmd::exec_cmd(
                 cmd,
-                &slack::CommandContext {
+                &cmd::CommandContext {
                     state_mutex: &state,
                     args: args,
                     user_name: &message.sender,
@@ -39,8 +39,8 @@ pub fn run(
             match slack_response {
                 Ok(slack_response) => {
                     let message_type = match slack_response.response_type {
-                        slack::ResponseType::Ephemeral => MessageType::RoomNotice,
-                        slack::ResponseType::InChannel => MessageType::TextMessage,
+                        cmd::ResponseType::Ephemeral => MessageType::RoomNotice,
+                        cmd::ResponseType::InChannel => MessageType::TextMessage,
                     };
 
                     bot.send_message(&slack_response.text, room, message_type);

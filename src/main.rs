@@ -11,9 +11,19 @@ extern crate quick_error;
 #[macro_use]
 extern crate serde_derive;
 extern crate crossbeam;
+extern crate iron;
+extern crate itertools;
 extern crate matrix_bot_api;
+extern crate num;
+extern crate reqwest;
+extern crate serde;
+extern crate serde_json;
 extern crate sharebill;
+extern crate time;
+extern crate urlencoded;
+extern crate uuid;
 
+mod cmd;
 mod config;
 mod db;
 mod ingest;
