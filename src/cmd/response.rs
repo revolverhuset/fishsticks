@@ -53,6 +53,16 @@ pub enum Response {
     Sharebill {
         url: String,
     },
+    Overhead {
+        overhead_in_cents: i32,
+    },
+    OverheadSet {
+        prev_overhead_in_cents: i32,
+        new_overhead_in_cents: i32,
+    },
+    Summary {
+        orders: Vec<(String, Vec<MenuItem>)>,
+    },
 }
 
 impl Into<SlackResponse> for Response {
@@ -182,6 +192,46 @@ impl Into<SlackResponse> for Response {
                 text: format!("💸 Posted to <{}|Sharebill> and closed order ✔️", url),
                 ..Default::default()
             },
+            Overhead { overhead_in_cents } => SlackResponse {
+                text: format!(
+                    "💁 Overhead is set to {}.{:02}",
+                    overhead_in_cents / 100,
+                    overhead_in_cents % 100
+                ),
+                ..Default::default()
+            },
+            OverheadSet {
+                prev_overhead_in_cents,
+                new_overhead_in_cents,
+            } => SlackResponse {
+                response_type: ResponseType::InChannel,
+                text: format!(
+                    "💁 Overhead changed from {}.{:02} to {}.{:02}",
+                    prev_overhead_in_cents / 100,
+                    prev_overhead_in_cents % 100,
+                    new_overhead_in_cents / 100,
+                    new_overhead_in_cents % 100
+                ),
+                ..Default::default()
+            },
+            Summary { orders } => {
+                use std::fmt::Write;
+                let mut buf = String::new();
+
+                // writeln! cannot return Err when writing to a String. unwrap() below is Ok
+
+                for (person_name, items) in orders {
+                    writeln!(&mut buf, "{}:", person_name).unwrap();
+                    for menu_item in items {
+                        writeln!(&mut buf, " - {}. {}", menu_item.number, menu_item.name).unwrap();
+                    }
+                }
+
+                SlackResponse {
+                    text: buf,
+                    ..Default::default()
+                }
+            }
         }
     }
 }

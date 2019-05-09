@@ -190,7 +190,7 @@ fn cmd_clear(
 
     state.clear_orders_for_person(open_order.id, user_name)?;
 
-    Ok(Response::Clear)
+    Ok(Response::Clear.into())
 }
 
 fn cmd_summary(
@@ -200,24 +200,20 @@ fn cmd_summary(
     let open_order = state.demand_open_order()?;
     let items = state.items_in_order(open_order.id)?;
 
-    use std::fmt::Write;
-    let mut buf = String::new();
-
-    for (person_name, items) in items
-        .into_iter()
-        .group_by(|&(_, ref order_item)| order_item.person_name.clone())
-        .into_iter()
-    {
-        writeln!(&mut buf, "{}:", person_name)?;
-        for (menu_item, _) in items {
-            writeln!(&mut buf, " - {}. {}", menu_item.number, menu_item.name)?;
-        }
+    Ok(Response::Summary {
+        orders: items
+            .into_iter()
+            .group_by(|&(_, ref order_item)| order_item.person_name.clone())
+            .into_iter()
+            .map(|(person_name, items)| {
+                (
+                    person_name,
+                    items.map(|(menu_item, _order_item)| menu_item).collect(),
+                )
+            })
+            .collect(),
     }
-
-    Ok(SlackResponse {
-        text: buf,
-        ..Default::default()
-    })
+    .into())
 }
 
 fn cmd_price(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<SlackResponse, Error> {
@@ -531,33 +527,23 @@ fn cmd_overhead(
     let open_order = state.demand_open_order()?;
 
     if args.len() == 0 {
-        Ok(SlackResponse {
-            text: format!(
-                "💁 Overhead is set to {}.{:02}",
-                open_order.overhead_in_cents / 100,
-                open_order.overhead_in_cents % 100
-            ),
-            ..Default::default()
-        })
+        Ok(Response::Overhead {
+            overhead_in_cents: open_order.overhead_in_cents,
+        }
+        .into())
     } else {
-        let old_overhead_in_cents = open_order.overhead_in_cents;
+        let prev_overhead_in_cents = open_order.overhead_in_cents;
 
         let overhead = args.parse::<f64>()?;
-        let overhead_in_cents = (overhead * 100.0).round() as i32;
+        let new_overhead_in_cents = (overhead * 100.0).round() as i32;
 
-        state.set_overhead(open_order.id, overhead_in_cents)?;
+        state.set_overhead(open_order.id, new_overhead_in_cents)?;
 
-        Ok(SlackResponse {
-            response_type: ResponseType::InChannel,
-            text: format!(
-                "💁 Overhead changed from {}.{:02} to {}.{:02}",
-                old_overhead_in_cents / 100,
-                old_overhead_in_cents % 100,
-                overhead_in_cents / 100,
-                overhead_in_cents % 100
-            ),
-            ..Default::default()
-        })
+        Ok(Response::OverheadSet {
+            prev_overhead_in_cents,
+            new_overhead_in_cents,
+        }
+        .into())
     }
 }
 
