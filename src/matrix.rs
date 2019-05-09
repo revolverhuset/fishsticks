@@ -4,8 +4,36 @@ use matrix_bot_api::handlers::{HandleResult, StatelessHandler};
 use matrix_bot_api::{MatrixBot, MessageType};
 
 use cmd;
+use slack::{ResponseType, SlackResponse};
 use state;
 use web;
+
+struct MatrixResponse {
+    text: String,
+    msg_type: MessageType,
+}
+
+impl From<SlackResponse> for MatrixResponse {
+    fn from(src: SlackResponse) -> Self {
+        let msg_type = match src.response_type {
+            ResponseType::Ephemeral => MessageType::RoomNotice,
+            ResponseType::InChannel => MessageType::TextMessage,
+        };
+
+        Self {
+            text: src.text,
+            msg_type,
+        }
+    }
+}
+
+impl From<cmd::Response> for MatrixResponse {
+    fn from(src: cmd::Response) -> Self {
+        match src {
+            x => SlackResponse::from(x).into(),
+        }
+    }
+}
 
 pub fn run(
     state: Arc<Mutex<state::State>>,
@@ -26,7 +54,7 @@ pub fn run(
             let cmd = split.next().unwrap();
             let args = split.next().unwrap_or("");
 
-            let slack_response = cmd::exec_cmd(
+            let response = cmd::exec_cmd(
                 cmd,
                 &cmd::CommandContext {
                     state_mutex: &state,
@@ -35,21 +63,13 @@ pub fn run(
                     env: &env,
                 },
             )
-            .map(cmd::SlackResponse::from);
+            .map(MatrixResponse::from)
+            .unwrap_or_else(|err| MatrixResponse {
+                text: format!("{:?}", err),
+                msg_type: MessageType::RoomNotice,
+            });
 
-            match slack_response {
-                Ok(slack_response) => {
-                    let message_type = match slack_response.response_type {
-                        cmd::ResponseType::Ephemeral => MessageType::RoomNotice,
-                        cmd::ResponseType::InChannel => MessageType::TextMessage,
-                    };
-
-                    bot.send_message(&slack_response.text, room, message_type);
-                }
-                Err(err) => {
-                    bot.send_message(&format!("{:?}", err), room, MessageType::RoomNotice);
-                }
-            };
+            bot.send_message(&response.text, room, response.msg_type);
 
             HandleResult::StopHandling
         }),
