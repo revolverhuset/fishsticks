@@ -1,4 +1,7 @@
 use models::*;
+use num::Zero;
+use sharebill::Rational;
+use std::fmt::Write;
 use words::*;
 
 #[derive(Serialize)]
@@ -30,6 +33,10 @@ pub enum Response {
     },
     PlacedOrder {
         menu_items: Vec<MenuItem>,
+    },
+    SearchResults {
+        query: String,
+        items: Vec<MenuItem>,
     },
     Restaurants {
         restaurants: Vec<Restaurant>,
@@ -63,6 +70,15 @@ pub enum Response {
     Summary {
         orders: Vec<(String, Vec<MenuItem>)>,
     },
+    Price {
+        overhead: Rational,
+        overhead_per_person: Rational,
+        summary: Vec<(String, f64, Vec<MenuItem>)>,
+    },
+    Suggest {
+        balances: Vec<(String, Rational, Rational)>,
+    },
+    Help,
 }
 
 impl Into<SlackResponse> for Response {
@@ -112,6 +128,41 @@ impl Into<SlackResponse> for Response {
                     }
                 }
             }
+            SearchResults { ref query, ref items } if items.len() > 1 => {
+                let mut buf = String::new();
+
+                writeln!(
+                    &mut buf,
+                    "💁 The best matches I found for {:?} are:\n",
+                    query
+                ).unwrap();
+                for item in items[..4].iter() {
+                    writeln!(&mut buf, " - {}. {}", item.number, item.name).unwrap();
+                }
+
+                SlackResponse {
+                    text: buf,
+                    ..Default::default()
+                }
+            }
+            SearchResults { ref items, .. } if items.len() == 1 => {
+                let menu_item = &items[0];
+                SlackResponse {
+                    text: format!(
+                        "💁 That query matches the {} \
+                        {} {}. {}",
+                        adjective(),
+                        noun(),
+                        &menu_item.number,
+                        &menu_item.name
+                    ),
+                    ..Default::default()
+                }
+            }
+            SearchResults { query, .. } => SlackResponse {
+                text: format!("🙍 I found no matches for {:?}", query),
+                ..Default::default()
+            },
             Restaurants { restaurants } => {
                 let restaurants = restaurants
                     .into_iter()
@@ -215,10 +266,8 @@ impl Into<SlackResponse> for Response {
                 ..Default::default()
             },
             Summary { orders } => {
-                use std::fmt::Write;
-                let mut buf = String::new();
-
                 // writeln! cannot return Err when writing to a String. unwrap() below is Ok
+                let mut buf = String::new();
 
                 for (person_name, items) in orders {
                     writeln!(&mut buf, "{}:", person_name).unwrap();
@@ -232,6 +281,84 @@ impl Into<SlackResponse> for Response {
                     ..Default::default()
                 }
             }
+            Price {
+                overhead,
+                overhead_per_person,
+                summary,
+            } => {
+                // writeln! cannot return Err when writing to a String. unwrap() below is Ok
+                let mut buf = String::new();
+
+                if !overhead.is_zero() {
+                    writeln!(
+                        &mut buf,
+                        "Total overhead {}, per person: {}",
+                        overhead, overhead_per_person
+                    )
+                    .unwrap();
+                }
+
+                for (person_name, total, items) in summary {
+                    writeln!(&mut buf, "{}: {:.2}", person_name, total).unwrap();
+                    for menu_item in items {
+                        writeln!(
+                            &mut buf,
+                            " - {}. {}: {:.2}",
+                            menu_item.number,
+                            menu_item.name,
+                            menu_item.price_in_cents as f64 / 100.
+                        )
+                        .unwrap();
+                    }
+                }
+
+                SlackResponse {
+                    text: buf,
+                    ..Default::default()
+                }
+            }
+            Suggest { balances } => {
+                let mut buf = String::new();
+
+                writeln!(&mut buf, "💁 The poorest people on sharebill are:").unwrap();
+                for (account_name, old_balance, new_balance) in balances {
+                    writeln!(
+                        &mut buf,
+                        " - {} ({}, projected new balance: {})",
+                        account_name,
+                        old_balance.0.to_integer(),
+                        new_balance.0.to_integer()
+                    )
+                    .unwrap();
+                }
+
+                SlackResponse {
+                    response_type: ResponseType::InChannel,
+                    text: buf,
+                    ..Default::default()
+                }
+            }
+            Help => SlackResponse {
+                text: "USAGE: /ffs command args...\n\
+                    associate [SLACK_NAME] SHAREBILL_ACCOUNT\n    Associate the given slack name (defaults to your name) with the given sharebill account\n\
+                    associate\n    Display all slack name-sharebill account associations\n\
+                    clear\n    Withdraw all your current orders\n\
+                    closeorder\n    Close the current order\n\
+                    help\n    This help\n\
+                    openorder RESTAURANT\n    Start a new order from the given restaurant\n\
+                    order QUERY\n    Order whatever matches QUERY in the menu\n\
+                    overhead [VALUE]\n    Get/set overhead (delivery cost, gratuity, etc) for current order\n\
+                    price\n    Like summary, but with price annotations\n\
+                    repeat\n    Repeat your last order for the current restaurant\n\
+                    restaurants\n    List known restaurants\n\
+                    search QUERY\n    See what matches QUERY in the menu\n\
+                    sharebill [CREDIT_ACCOUNT]\n    Post order to Sharebill. CREDIT_ACCOUNT defaults to your account\n\
+                    sudo USER args...\n    Perform the command specified in args as USER\n\
+                    suggest\n    Suggest who should pay for the order based on Sharebill balance\n\
+                    summary\n    See the current order\n\
+                    ".to_owned(),
+                ..Default::default()
+            },
         }
     }
 }

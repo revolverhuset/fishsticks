@@ -1,6 +1,5 @@
 use state;
 use web;
-use words::*;
 
 use itertools::*;
 use sharebill::Rational;
@@ -109,44 +108,13 @@ fn cmd_search(
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
 
-    match state.query_menu(open_order.menu, &query)? {
-        ref items if items.len() > 1 => {
-            use std::fmt::Write;
-            let mut buf = String::new();
+    let items = state.query_menu(open_order.menu, &query)?;
 
-            writeln!(
-                &mut buf,
-                "💁 The best matches I found for {:?} are:\n",
-                &args
-            )?;
-            for item in items[..4].iter() {
-                writeln!(&mut buf, " - {}. {}", item.number, item.name)?;
-            }
-
-            Ok(SlackResponse {
-                text: buf,
-                ..Default::default()
-            })
-        }
-        ref mut items if items.len() == 1 => {
-            let menu_item = items.pop().expect("Guaranteed because of match arm");
-            Ok(SlackResponse {
-                text: format!(
-                    "💁 That query matches the {} \
-                     {} {}. {}",
-                    adjective(),
-                    noun(),
-                    &menu_item.number,
-                    &menu_item.name
-                ),
-                ..Default::default()
-            })
-        }
-        _ => Ok(SlackResponse {
-            text: format!("🙍 I found no matches for {:?}", &args),
-            ..Default::default()
-        }),
+    Ok(Response::SearchResults {
+        query: args.to_string(),
+        items,
     }
+    .into())
 }
 
 fn cmd_order(
@@ -217,14 +185,9 @@ fn cmd_summary(
 }
 
 fn cmd_price(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<SlackResponse, Error> {
-    use num::Zero;
-
     let state = state_mutex.lock()?;
     let open_order = state.demand_open_order()?;
     let items = state.items_in_order(open_order.id)?;
-
-    use std::fmt::Write;
-    let mut buf = String::new();
 
     let persons = Rational::from(
         items
@@ -235,44 +198,30 @@ fn cmd_price(&CommandContext { state_mutex, .. }: &CommandContext) -> Result<Sla
     );
 
     let overhead = Rational::from_cents(open_order.overhead_in_cents);
-    let overhead_per_person = overhead.clone() / persons;
+    let overhead_per_person = overhead.clone() / persons; // Divide by zero for empty orders
 
-    if !overhead.is_zero() {
-        writeln!(
-            &mut buf,
-            "Total overhead {}, per person: {}",
-            overhead, overhead_per_person
-        )?;
-    }
-
-    for (person_name, items) in items
+    let summary = items
         .into_iter()
         .group_by(|&(_, ref order_item)| order_item.person_name.clone())
         .into_iter()
-    {
-        let items: Vec<_> = items.collect();
-        let total: i32 = items
-            .iter()
-            .map(|&(ref menu_item, _)| menu_item.price_in_cents)
-            .sum();
-        let total = Rational::from_cents(total) + &overhead_per_person;
-        let total = total.to_f64();
-        writeln!(&mut buf, "{}: {:.2}", person_name, total)?;
-        for (menu_item, _) in items {
-            writeln!(
-                &mut buf,
-                " - {}. {}: {:.2}",
-                menu_item.number,
-                menu_item.name,
-                menu_item.price_in_cents as f64 / 100.
-            )?;
-        }
-    }
+        .map(|(person_name, items)| {
+            let items = items.map(|(menu_item, _)| menu_item).collect::<Vec<_>>();
+            let total = items
+                .iter()
+                .map(|ref menu_item| menu_item.price_in_cents)
+                .sum();
+            let total = Rational::from_cents(total) + &overhead_per_person;
+            let total = total.to_f64();
+            (person_name, total, items)
+        })
+        .collect::<Vec<_>>();
 
-    Ok(SlackResponse {
-        text: buf,
-        ..Default::default()
-    })
+    Ok(Response::Price {
+        overhead,
+        overhead_per_person,
+        summary,
+    }
+    .into())
 }
 
 fn cmd_associate(
@@ -496,26 +445,9 @@ fn cmd_suggest(
         .collect::<Vec<_>>();
 
     balances.sort_by(|a, b| a.2.cmp(&b.2));
+    let balances = balances.into_iter().take(3).collect();
 
-    use std::fmt::Write;
-    let mut buf = String::new();
-
-    writeln!(&mut buf, "💁 The poorest people on sharebill are:")?;
-    for (account_name, old_balance, new_balance) in balances.into_iter().take(3) {
-        writeln!(
-            &mut buf,
-            " - {} ({}, projected new balance: {})",
-            account_name,
-            old_balance.0.to_integer(),
-            new_balance.0.to_integer()
-        )?;
-    }
-
-    Ok(SlackResponse {
-        response_type: ResponseType::InChannel,
-        text: buf,
-        ..Default::default()
-    })
+    Ok(Response::Suggest { balances }.into())
 }
 
 fn cmd_overhead(
@@ -564,27 +496,7 @@ fn cmd_sudo(cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
 }
 
 fn cmd_help(_cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
-    Ok(SlackResponse {
-        text: "USAGE: /ffs command args...\n\
-            associate [SLACK_NAME] SHAREBILL_ACCOUNT\n    Associate the given slack name (defaults to your name) with the given sharebill account\n\
-            associate\n    Display all slack name-sharebill account associations\n\
-            clear\n    Withdraw all your current orders\n\
-            closeorder\n    Close the current order\n\
-            help\n    This help\n\
-            openorder RESTAURANT\n    Start a new order from the given restaurant\n\
-            order QUERY\n    Order whatever matches QUERY in the menu\n\
-            overhead [VALUE]\n    Get/set overhead (delivery cost, gratuity, etc) for current order\n\
-            price\n    Like summary, but with price annotations\n\
-            repeat\n    Repeat your last order for the current restaurant\n\
-            restaurants\n    List known restaurants\n\
-            search QUERY\n    See what matches QUERY in the menu\n\
-            sharebill [CREDIT_ACCOUNT]\n    Post order to Sharebill. CREDIT_ACCOUNT defaults to your account\n\
-            sudo USER args...\n    Perform the command specified in args as USER\n\
-            suggest\n    Suggest who should pay for the order based on Sharebill balance\n\
-            summary\n    See the current order\n\
-            ".to_owned(),
-        ..Default::default()
-    })
+    Ok(Response::Help.into())
 }
 
 type CommandHandler = Fn(&CommandContext) -> Result<SlackResponse, Error> + Sync;
