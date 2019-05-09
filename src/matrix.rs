@@ -29,7 +29,22 @@ impl From<SlackResponse> for MatrixResponse {
 
 impl From<cmd::Response> for MatrixResponse {
     fn from(src: cmd::Response) -> Self {
+        use cmd::Response::*;
         match src {
+            OpenedOrder {
+                menu_url,
+                restaurant_name,
+            } => MatrixResponse {
+                text: format!(
+                    "🔔 Now taking orders from the {} menu ({}) 📝",
+                    restaurant_name, menu_url
+                ),
+                msg_type: MessageType::TextMessage,
+            },
+            Sharebill { url } => MatrixResponse {
+                text: format!("💸 Posted to Sharebill and closed order ✔️ {}", url),
+                msg_type: MessageType::TextMessage,
+            },
             x => SlackResponse::from(x).into(),
         }
     }
