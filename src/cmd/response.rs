@@ -27,6 +27,10 @@ pub struct SlackResponse {
 }
 
 pub enum Response {
+    UnknownCommand {
+        cmd: String,
+        args: String,
+    },
     RepeatNoMatch,
     OrderNoMatch {
         search_string: String,
@@ -81,10 +85,18 @@ pub enum Response {
     Help,
 }
 
-impl Into<SlackResponse> for Response {
-    fn into(self) -> SlackResponse {
+impl From<Response> for SlackResponse {
+    fn from(src: Response) -> Self {
         use self::Response::*;
-        match self {
+        match src {
+            UnknownCommand { cmd, args } => SlackResponse {
+                text: format!(
+                    "😕 Oh man! I don't understand /ffs {} {}\n\
+                    Try /ffs help",
+                    cmd, args
+                ),
+                ..Default::default()
+            },
             RepeatNoMatch => SlackResponse {
                 text: format!("🙍 I found no matches for you"),
                 ..Default::default()

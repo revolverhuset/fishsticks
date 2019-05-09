@@ -49,6 +49,7 @@ fn slack_core(maybe_slack_token: &Option<&str>, req: &mut Request) -> Result<Sla
             env: &env,
         },
     )
+    .map(Into::into)
 }
 
 pub fn slack(slack_token: &Option<&str>, req: &mut Request) -> IronResult<Response> {

@@ -34,7 +34,8 @@ pub fn run(
                     user_name: &message.sender,
                     env: &env,
                 },
-            );
+            )
+            .map(cmd::SlackResponse::from);
 
             match slack_response {
                 Ok(slack_response) => {

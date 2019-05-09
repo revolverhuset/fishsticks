@@ -8,16 +8,12 @@ use self::commands::COMMAND_MAP;
 pub use self::error::Error;
 pub use self::response::*;
 
-pub fn exec_cmd(cmd: &str, cmd_ctx: &CommandContext) -> Result<SlackResponse, Error> {
+pub fn exec_cmd(cmd: &str, cmd_ctx: &CommandContext) -> Result<Response, Error> {
     match COMMAND_MAP.get(cmd) {
         Some(cmd) => cmd(cmd_ctx),
-        _ => Ok(SlackResponse {
-            text: format!(
-                "😕 Oh man! I don't understand /ffs {} {}\n\
-                 Try /ffs help",
-                &cmd, &cmd_ctx.args
-            ),
-            ..Default::default()
+        _ => Ok(Response::UnknownCommand {
+            cmd: cmd.to_string(),
+            args: cmd_ctx.args.to_string(),
         }),
     }
 }
