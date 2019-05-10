@@ -50,6 +50,22 @@ impl From<cmd::Response> for MatrixResponse {
     }
 }
 
+impl From<cmd::Error> for MatrixResponse {
+    fn from(src: cmd::Error) -> Self {
+        use cmd::Error::*;
+        match src {
+            StateError(state::Error::OrderAlreadyOpen(_current_open_order)) => MatrixResponse {
+                text: format!("🙅 I already have an open order"),
+                msg_type: MessageType::RoomNotice,
+            },
+            x => MatrixResponse {
+                text: format!("{:?}", x),
+                msg_type: MessageType::RoomNotice,
+            },
+        }
+    }
+}
+
 pub fn run(
     state: Arc<Mutex<state::State>>,
     env: web::Env,
@@ -79,10 +95,7 @@ pub fn run(
                 },
             )
             .map(MatrixResponse::from)
-            .unwrap_or_else(|err| MatrixResponse {
-                text: format!("{:?}", err),
-                msg_type: MessageType::RoomNotice,
-            });
+            .unwrap_or_else(MatrixResponse::from);
 
             bot.send_message(&response.text, room, response.msg_type);
 
