@@ -103,8 +103,17 @@ pub fn run(
         }),
     );
 
-    let bot = MatrixBot::new(handler);
-    bot.run(matrix_user, matrix_password, matrix_server);
+    let mut bot = MatrixBot::new(handler);
+    bot.connect(matrix_user, matrix_password, matrix_server);
+
+    loop {
+        let cmd = bot.rx.recv().unwrap();
+
+        // first handle with matrix_bot_api
+        if !bot.handle_recvs(&cmd) {
+            break;
+        }
+    }
 
     Ok(())
 }
