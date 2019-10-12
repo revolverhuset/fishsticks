@@ -73,10 +73,18 @@ impl WebConfig {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+pub struct MatrixRemainderConfig {
+    pub channel: String,
+    pub interval_sec: u64,
+    pub offset_sec: u64,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct MatrixConfig {
     pub user: String,
     pub password: String,
     pub server: String,
+    pub reminder: Option<MatrixRemainderConfig>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

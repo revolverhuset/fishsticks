@@ -1,9 +1,11 @@
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use matrix_bot_api::handlers::{HandleResult, StatelessHandler};
-use matrix_bot_api::{MatrixBot, MessageType};
+use matrix_bot_api::{MatrixBot, MessageType, BKResponse};
 
 use cmd;
+use config;
 use slack::{ResponseType, SlackResponse};
 use state;
 use web;
@@ -72,8 +74,10 @@ pub fn run(
     matrix_user: &str,
     matrix_password: &str,
     matrix_server: &str,
+    reminder: Option<&config::MatrixRemainderConfig>,
 ) -> Result<(), ()> {
     let mut handler = StatelessHandler::new();
+    let state_mutex = state.clone();
     handler.register_handle(
         "ffs",
         Box::new(move |bot, message, tail| {
@@ -106,12 +110,60 @@ pub fn run(
     let mut bot = MatrixBot::new(handler);
     bot.connect(matrix_user, matrix_password, matrix_server);
 
-    loop {
-        let cmd = bot.rx.recv().unwrap();
+    let mut connected = false;
 
-        // first handle with matrix_bot_api
-        if !bot.handle_recvs(&cmd) {
-            break;
+    let mut next_reminder = if let Some(reminder) = reminder {
+        let now = std::time::SystemTime::now();
+
+        Some(now +
+            Duration::from_secs(
+                reminder.interval_sec as u64 -
+                    now.duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap().as_secs() as u64
+                    % reminder.interval_sec
+                    + reminder.offset_sec)
+            )
+    } else {
+        None
+    };
+
+    loop {
+        let now = std::time::SystemTime::now();
+
+        let cmd = if let Some(this_reminder) = next_reminder {
+            let timeout = this_reminder.duration_since(now).unwrap_or(Duration::new(0, 0));
+            let cmd = bot.rx.recv_timeout(timeout);
+
+            if let Some(reminder) = reminder {
+                if connected && now >= this_reminder {
+                    let state = state_mutex.lock().unwrap();
+
+                    if state.demand_open_order().is_ok() {
+                        let message = "Use `!ffs sharebill` or `!ffs closeorder` to close the currently open order";
+                        bot.send_message(&message, &reminder.channel, MessageType::RoomNotice);
+                    }
+                    let reminder_interval = Duration::from_secs(reminder.interval_sec);
+                    next_reminder = Some(this_reminder + reminder_interval);
+                }
+            }
+
+            cmd.map_err(|_| ())
+        } else {
+            bot.rx.recv().map_err(|_| ())
+        };
+
+        if let Ok(cmd) = cmd {
+            // first handle with matrix_bot_api
+            if !bot.handle_recvs(&cmd) {
+                break;
+            }
+
+            // then custom handlers
+            match cmd {
+                BKResponse::Token(_, _) => {
+                    connected = true;
+                }
+                _ => (),
+            }
         }
     }
 
