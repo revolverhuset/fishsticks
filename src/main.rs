@@ -81,7 +81,7 @@ fn main() {
 
         let matrix = config.matrix.map(|matrix| {
             scope.spawn(move || {
-                matrix::run(state, env, &matrix.user, &matrix.password, &matrix.server)
+                matrix::run(state, env, &matrix.user, &matrix.password, &matrix.server, matrix.reminder.as_ref())
             })
         });
 

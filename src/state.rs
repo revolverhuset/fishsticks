@@ -47,6 +47,10 @@ fn timestamp() -> i32 {
     time::now().to_timespec().sec as i32
 }
 
+pub fn duration_since(ts: i32) -> std::time::Duration {
+    std::time::Duration::from_secs(std::cmp::max(0, timestamp() - ts) as u64)
+}
+
 fn distance(a: &str, b: &str) -> usize {
     ((1. - strsim::jaro_winkler(&a.to_lowercase(), &b.to_lowercase())) * 1000.) as usize
 }

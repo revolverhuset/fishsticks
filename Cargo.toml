@@ -32,7 +32,7 @@ serde_json = "1.0.39"
 strsim = "0.6.0"
 time = "0.1.35"
 urlencoded = "0.5"
-matrix_bot_api = { git = "https://github.com/maghoff/matrix_bot_api.git" }
+matrix_bot_api = { git = "https://github.com/johshoff/matrix_bot_api.git" }
 crossbeam = "0.3.2"
 
 [dependencies.diesel]
