@@ -33,8 +33,6 @@ pub fn menu(
     restaurant_id: i32,
     menu: &takedown::Menu,
 ) -> Result<MenuId, Error> {
-    use schema::menus;
-
     let new_menu = NewMenu {
         restaurant: restaurant_id,
     };

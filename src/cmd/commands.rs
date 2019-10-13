@@ -310,7 +310,6 @@ fn cmd_sharebill(
     }: &CommandContext,
 ) -> Result<Response, Error> {
     use num::Zero;
-    use std::collections::HashMap;
 
     let sharebill_url = maybe_sharebill_url
         .as_ref()
@@ -485,7 +484,7 @@ fn cmd_help(_cmd_ctx: &CommandContext) -> Result<Response, Error> {
     Ok(Response::Help)
 }
 
-type CommandHandler = Fn(&CommandContext) -> Result<Response, Error> + Sync;
+type CommandHandler = dyn Fn(&CommandContext) -> Result<Response, Error> + Sync;
 
 lazy_static! {
     pub static ref COMMAND_MAP: HashMap<&'static str, &'static CommandHandler> = {

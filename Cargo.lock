@@ -382,7 +382,7 @@ dependencies = [
  "iron 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.5.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "matrix_bot_api 0.3.1 (git+https://github.com/johshoff/matrix_bot_api.git)",
+ "matrix_bot_api 0.3.1 (git+https://github.com/maghoff/matrix_bot_api.git)",
  "num 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "quick-error 1.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -714,7 +714,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "matrix_bot_api"
 version = "0.3.1"
-source = "git+https://github.com/johshoff/matrix_bot_api.git#4356b7d0cbf499db8e4fcac85f93d5ee442aebf3"
+source = "git+https://github.com/maghoff/matrix_bot_api.git#127ffc8edb9142b626c80af8c03112e905984397"
 dependencies = [
  "chrono 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "fractal-matrix-api 3.30.0 (git+https://github.com/maghoff/fractal-matrix-api.git)",
@@ -2065,7 +2065,7 @@ dependencies = [
 "checksum log 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "e19e8d5c34a3e0e2223db8e060f9e8264aeeb5c5fc64a4ee9965c062211c024b"
 "checksum log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "c84ec4b527950aa83a329754b01dbe3f58361d1c5efacd1f6d68c494d08a17c6"
 "checksum matches 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "100aabe6b8ff4e4a7e32c1c13523379802df0772b82466207ac25b013f193376"
-"checksum matrix_bot_api 0.3.1 (git+https://github.com/johshoff/matrix_bot_api.git)" = "<none>"
+"checksum matrix_bot_api 0.3.1 (git+https://github.com/maghoff/matrix_bot_api.git)" = "<none>"
 "checksum md5 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)" = "daa1004633f76cdcd5a9d83ffcfe615e30ca7a2a638fcc8b8039a2dac21289d7"
 "checksum memchr 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)" = "d8b629fb514376c675b98c1421e80b151d3817ac42d7c667717d282761418d20"
 "checksum memchr 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "796fba70e76612589ed2ce7f45282f5af869e0fdd7cc6199fa1aa1f1d591ba9d"

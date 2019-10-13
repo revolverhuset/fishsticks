@@ -36,7 +36,7 @@ struct Layout<'a> {
 }
 
 impl<'a> Layout<'a> {
-    fn new(body: &'a Display) -> Layout<'a> {
+    fn new(body: &'a dyn Display) -> Layout<'a> {
         Layout { body: body }
     }
 }

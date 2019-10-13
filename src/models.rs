@@ -11,13 +11,13 @@ macro_rules! generate_id_type {
         impl FromSql<Integer, diesel::sqlite::Sqlite> for $x {
             fn from_sql(
                 bytes: Option<&<diesel::sqlite::Sqlite as diesel::backend::Backend>::RawValue>,
-            ) -> Result<Self, Box<std::error::Error + Send + Sync>> {
+            ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
                 FromSql::<Integer, diesel::sqlite::Sqlite>::from_sql(bytes).map(|x| $x(x))
             }
         }
 
         impl FromSqlRow<Integer, diesel::sqlite::Sqlite> for $x {
-            fn build_from_row<T>(row: &mut T) -> Result<Self, Box<std::error::Error + Send + Sync>>
+            fn build_from_row<T>(row: &mut T) -> Result<Self, Box<dyn std::error::Error + Send + Sync>>
             where
                 T: diesel::row::Row<diesel::sqlite::Sqlite>,
             {
