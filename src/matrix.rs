@@ -74,7 +74,7 @@ pub fn run(
     matrix_user: &str,
     matrix_password: &str,
     matrix_server: &str,
-    reminder: Option<&config::MatrixRemainderConfig>,
+    reminder: Option<&config::MatrixReminderConfig>,
 ) -> Result<(), ()> {
     let mut handler = StatelessHandler::new();
     let state_mutex = state.clone();
