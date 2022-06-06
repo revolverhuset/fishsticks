@@ -33,7 +33,7 @@ strsim = "0.6.0"
 time = "0.1.35"
 urlencoded = "0.5"
 matrix_bot_api = { git = "https://github.com/maghoff/matrix_bot_api.git" }
-crossbeam = "0.3.2"
+crossbeam = "0.4.1"
 
 [dependencies.diesel]
 default-features = false
